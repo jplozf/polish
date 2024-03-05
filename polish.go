@@ -68,9 +68,9 @@ func main() {
 
 	for ok := true; ok; ok = loopme {
 		if len(s.S) > 0 {
-			prompt = fmt.Sprintf("[%05d] %s%15.6f%s ⯈ ", s.Depth(), color.Green, s.S[len(s.S)-1], color.Reset)
+			prompt = fmt.Sprintf("[%05d] %s%20.6f%s ⯈ ", s.Depth(), color.Green, s.S[len(s.S)-1], color.Reset)
 		} else {
-			prompt = fmt.Sprintf("[%05d]     Empty stack ⯈ ", s.Depth())
+			prompt = fmt.Sprintf("[%05d]          Empty stack ⯈ ", s.Depth())
 		}
 		fmt.Printf("%s", prompt)
 		text, _ := reader.ReadString('\n')
@@ -125,6 +125,8 @@ func xeq(cmd string) {
 				m.MyMult()
 			case "/":
 				m.MyDiv()
+			case "**":
+				m.MyPow()
 			case "drop":
 				doDrop()
 			case "dup":
@@ -137,6 +139,8 @@ func xeq(cmd string) {
 				showStack()
 			case "swap":
 				doSwap()
+			case "rot":
+				doRot()
 			default:
 				fmt.Printf("\t"+color.Red+"Unrecognized command '%s'\n"+color.Reset, cmd)
 			}
@@ -208,7 +212,7 @@ func doDepth() {
 func showStack() {
 	for k, v := range s.S {
 		k = len(s.S) - 1 - k
-		fmt.Printf("\t%05d : %15.6f\n", k, v)
+		fmt.Printf("\t%05d : %20.6f\n", k, v)
 	}
 }
 
@@ -247,5 +251,19 @@ func doSwap() {
 		f1, _ := s.Pop()
 		s.Push(f2)
 		s.Push(f1)
+	}
+}
+
+// *****************************************************************************
+// doRot()
+// *****************************************************************************
+func doRot() {
+	if checkStack(3) {
+		f3, _ := s.Pop()
+		f2, _ := s.Pop()
+		f1, _ := s.Pop()
+		s.Push(f3)
+		s.Push(f1)
+		s.Push(f2)
 	}
 }

@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"path/filepath"
 	"polish/color"
@@ -34,10 +35,10 @@ import (
 // GLOBALS
 // *****************************************************************************
 var (
-	loopme = true
-	s      *stack.Stack
-	prompt string
-	appDir string
+	loopme   = true
+	s        *stack.Stack
+	appDir   string
+	previous string
 )
 
 // *****************************************************************************
@@ -67,12 +68,7 @@ func main() {
 	reader := bufio.NewReader(os.Stdin)
 
 	for ok := true; ok; ok = loopme {
-		if len(s.S) > 0 {
-			prompt = fmt.Sprintf("[%05d] %s%20.6f%s ⯈ ", s.Depth(), color.Green, s.S[len(s.S)-1], color.Reset)
-		} else {
-			prompt = fmt.Sprintf("[%05d]          Empty stack ⯈ ", s.Depth())
-		}
-		fmt.Printf("%s", prompt)
+		showPrompt()
 		text, _ := reader.ReadString('\n')
 		text = strings.Replace(text, "\n", "", -1)
 		parse(text)
@@ -115,6 +111,8 @@ func xeq(cmd string) {
 			meth.Call(nil)
 		} else {
 			switch cmd {
+			case "!!":
+				xeq(previous)
 			case "exit", "quit", "bye":
 				loopme = false
 			case "+":
@@ -127,6 +125,8 @@ func xeq(cmd string) {
 				m.MyDiv()
 			case "**":
 				m.MyPow()
+			case "!":
+				m.MyFact()
 			case "drop":
 				doDrop()
 			case "dup":
@@ -145,6 +145,9 @@ func xeq(cmd string) {
 				fmt.Printf("\t"+color.Red+"Unrecognized command '%s'\n"+color.Reset, cmd)
 			}
 		}
+	}
+	if cmd != "!!" {
+		previous = cmd
 	}
 }
 
@@ -212,7 +215,11 @@ func doDepth() {
 func showStack() {
 	for k, v := range s.S {
 		k = len(s.S) - 1 - k
-		fmt.Printf("\t%05d : %20.6f\n", k, v)
+		if math.Log10(math.Abs(v)) > 12 {
+			fmt.Printf("\t%05d : %20.6E\n", k, v)
+		} else {
+			fmt.Printf("\t%05d : %20.6f\n", k, v)
+		}
 	}
 }
 
@@ -266,4 +273,22 @@ func doRot() {
 		s.Push(f1)
 		s.Push(f2)
 	}
+}
+
+// *****************************************************************************
+// showPrompt()
+// *****************************************************************************
+func showPrompt() {
+	var prompt string
+	if len(s.S) > 0 {
+		f := s.S[len(s.S)-1]
+		if math.Log10(math.Abs(f)) > 12 {
+			prompt = fmt.Sprintf("[%05d] %s%20.6E%s ⯈ ", s.Depth(), color.Green, f, color.Reset)
+		} else {
+			prompt = fmt.Sprintf("[%05d] %s%20.6f%s ⯈ ", s.Depth(), color.Green, f, color.Reset)
+		}
+	} else {
+		prompt = fmt.Sprintf("[%05d]          Empty stack ⯈ ", s.Depth())
+	}
+	fmt.Printf("%s", prompt)
 }

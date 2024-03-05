@@ -81,9 +81,9 @@ func main() {
 // greetings()
 // *****************************************************************************
 func greetings() {
-	fmt.Printf("Welcome to %s\n", APP_STRING)
-	fmt.Printf("%s version %s\n", APP_NAME, APP_VERSION)
-	fmt.Printf("%s\n\n", APP_URL)
+	fmt.Printf("⚬ Welcome to %s\n", APP_STRING)
+	fmt.Printf("⚬ %s version %s\n", APP_NAME, APP_VERSION)
+	fmt.Printf("⚬ %s\n\n", APP_URL)
 }
 
 // *****************************************************************************

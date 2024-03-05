@@ -45,19 +45,26 @@ var (
 // init()
 // *****************************************************************************
 func init() {
+	// Get the user folder
 	userDir, err := os.UserHomeDir()
 	if err != nil {
 		log.Fatal(err)
 	}
+	// The application folder is supposed to be into the user folder
+	// The application folder will store the serialized stack
 	appDir = filepath.Join(userDir, APP_FOLDER)
 	if _, err := os.Stat(appDir); errors.Is(err, os.ErrNotExist) {
+		// Create this application folder into the user folder if not exists
 		err := os.Mkdir(appDir, os.ModePerm)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
+	// Some blahblah
 	greetings()
+	// Create the stack
 	s = stack.NewStack()
+	// Deserialize the previous stack, if any
 	readStack()
 }
 
@@ -74,16 +81,16 @@ func main() {
 		parse(text)
 	}
 	saveStack()
-	fmt.Printf("\nBye.\n\n")
+	fmt.Printf("\n⛁ Bye.\n\n")
 }
 
 // *****************************************************************************
 // greetings()
 // *****************************************************************************
 func greetings() {
-	fmt.Printf("⚬ Welcome to %s\n", APP_STRING)
-	fmt.Printf("⚬ %s version %s\n", APP_NAME, APP_VERSION)
-	fmt.Printf("⚬ %s\n\n", APP_URL)
+	fmt.Printf("⛁ Welcome to %s\n", APP_STRING)
+	fmt.Printf("⛁ %s version %s\n", APP_NAME, APP_VERSION)
+	fmt.Printf("⛁ %s\n\n", APP_URL)
 }
 
 // *****************************************************************************
@@ -156,8 +163,10 @@ func xeq(cmd string) {
 // *****************************************************************************
 func isFloat(c string) bool {
 	rc := true
+	// We try to convert the entered string to something which looks like a float number
 	_, err := strconv.ParseFloat(c, 64)
 	if err != nil {
+		// It doesn't look like a float number
 		rc = false
 	}
 	return rc
@@ -167,6 +176,7 @@ func isFloat(c string) bool {
 // checkStack()
 // *****************************************************************************
 func checkStack(n int) bool {
+	// Do we have enough args on stack to perform the selected operation
 	if s.Depth() >= n {
 		return true
 	} else {
@@ -227,6 +237,7 @@ func showStack() {
 // saveStack()
 // *****************************************************************************
 func saveStack() {
+	// Serialize the stack on disk into the application folder
 	dataFile, err := os.Create(filepath.Join(appDir, STACK_FILE))
 	if err == nil {
 		dataEncoder := gob.NewEncoder(dataFile)
@@ -239,6 +250,7 @@ func saveStack() {
 // readStack()
 // *****************************************************************************
 func readStack() {
+	// Deserialize the previous stack stored into the application folder, if any
 	dataFile, err := os.Open(filepath.Join(appDir, STACK_FILE))
 	if err == nil {
 		dataDecoder := gob.NewDecoder(dataFile)
@@ -278,14 +290,17 @@ func doRot() {
 // *****************************************************************************
 func showPrompt() {
 	var prompt string
+	// Do we have something into the stack to display
 	if len(s.S) > 0 {
 		f := s.S[len(s.S)-1]
+		// We use scientific notation if the number of digits is greater than 12
 		if math.Log10(math.Abs(f)) > 12 {
 			prompt = fmt.Sprintf("[%05d] %s%20.6E%s ⯈ ", s.Depth(), color.Green, f, color.Reset)
 		} else {
 			prompt = fmt.Sprintf("[%05d] %s%20.6f%s ⯈ ", s.Depth(), color.Green, f, color.Reset)
 		}
 	} else {
+		// Nothing to display
 		prompt = fmt.Sprintf("[%05d]          Empty stack ⯈ ", s.Depth())
 	}
 	fmt.Printf("%s", prompt)

@@ -228,12 +228,11 @@ func showStack() {
 // *****************************************************************************
 func saveStack() {
 	dataFile, err := os.Create(filepath.Join(appDir, STACK_FILE))
-	defer dataFile.Close()
-
 	if err == nil {
 		dataEncoder := gob.NewEncoder(dataFile)
 		dataEncoder.Encode(s.S)
 	}
+	dataFile.Close()
 }
 
 // *****************************************************************************
@@ -241,12 +240,11 @@ func saveStack() {
 // *****************************************************************************
 func readStack() {
 	dataFile, err := os.Open(filepath.Join(appDir, STACK_FILE))
-	defer dataFile.Close()
-
 	if err == nil {
 		dataDecoder := gob.NewDecoder(dataFile)
 		dataDecoder.Decode(&s.S)
 	}
+	dataFile.Close()
 }
 
 // *****************************************************************************

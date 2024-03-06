@@ -38,7 +38,7 @@ type My struct{}
 // MyAdd()
 // *****************************************************************************
 func (m My) MyAdd() {
-	if checkStack(2) {
+	if checkFStack(2) {
 		f2, _ := fs.Pop()
 		f1, _ := fs.Pop()
 		fs.Push(f1 + f2)
@@ -49,7 +49,7 @@ func (m My) MyAdd() {
 // MySub()
 // *****************************************************************************
 func (m My) MySub() {
-	if checkStack(2) {
+	if checkFStack(2) {
 		f2, _ := fs.Pop()
 		f1, _ := fs.Pop()
 		fs.Push(f1 - f2)
@@ -60,7 +60,7 @@ func (m My) MySub() {
 // MyMult()
 // *****************************************************************************
 func (m My) MyMult() {
-	if checkStack(2) {
+	if checkFStack(2) {
 		f2, _ := fs.Pop()
 		f1, _ := fs.Pop()
 		fs.Push(f1 * f2)
@@ -71,7 +71,7 @@ func (m My) MyMult() {
 // MyDiv()
 // *****************************************************************************
 func (m My) MyDiv() {
-	if checkStack(2) {
+	if checkFStack(2) {
 		f2, _ := fs.Pop()
 		f1, _ := fs.Pop()
 		fs.Push(f1 / f2)
@@ -82,7 +82,7 @@ func (m My) MyDiv() {
 // MyAbs()
 // *****************************************************************************
 func (m My) MyAbs() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(math.Abs(f))
 	}
@@ -92,7 +92,7 @@ func (m My) MyAbs() {
 // MyAcos()
 // *****************************************************************************
 func (m My) MyAcos() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(math.Acos(f))
 	}
@@ -102,7 +102,7 @@ func (m My) MyAcos() {
 // MyAcosh()
 // *****************************************************************************
 func (m My) MyAcosh() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(math.Acosh(f))
 	}
@@ -112,7 +112,7 @@ func (m My) MyAcosh() {
 // MyAsin()
 // *****************************************************************************
 func (m My) MyAsin() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(math.Asin(f))
 	}
@@ -122,7 +122,7 @@ func (m My) MyAsin() {
 // MyAsinh()
 // *****************************************************************************
 func (m My) MyAsinh() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(math.Asinh(f))
 	}
@@ -132,7 +132,7 @@ func (m My) MyAsinh() {
 // MyAtan()
 // *****************************************************************************
 func (m My) MyAtan() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(math.Atan(f))
 	}
@@ -142,7 +142,7 @@ func (m My) MyAtan() {
 // MyAtan2()
 // *****************************************************************************
 func (m My) MyAtan2() {
-	if checkStack(2) {
+	if checkFStack(2) {
 		f2, _ := fs.Pop()
 		f1, _ := fs.Pop()
 		fs.Push(math.Atan2(f2, f1))
@@ -153,7 +153,7 @@ func (m My) MyAtan2() {
 // MyAtanh()
 // *****************************************************************************
 func (m My) MyAtanh() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(math.Atanh(f))
 	}
@@ -163,7 +163,7 @@ func (m My) MyAtanh() {
 // MyCbrt()
 // *****************************************************************************
 func (m My) MyCbrt() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(math.Cbrt(f))
 	}
@@ -173,7 +173,7 @@ func (m My) MyCbrt() {
 // MyCeil()
 // *****************************************************************************
 func (m My) MyCeil() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(math.Ceil(f))
 	}
@@ -183,7 +183,7 @@ func (m My) MyCeil() {
 // MyCos()
 // *****************************************************************************
 func (m My) MyCos() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(math.Cos(f))
 	}
@@ -193,7 +193,7 @@ func (m My) MyCos() {
 // MyCosh()
 // *****************************************************************************
 func (m My) MyCosh() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(math.Cosh(f))
 	}
@@ -203,7 +203,7 @@ func (m My) MyCosh() {
 // MyExp()
 // *****************************************************************************
 func (m My) MyExp() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(math.Exp(f))
 	}
@@ -213,7 +213,7 @@ func (m My) MyExp() {
 // MyExp2()
 // *****************************************************************************
 func (m My) MyExp2() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(math.Exp2(f))
 	}
@@ -223,7 +223,7 @@ func (m My) MyExp2() {
 // MyFloor()
 // *****************************************************************************
 func (m My) MyFloor() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(math.Floor(f))
 	}
@@ -233,7 +233,7 @@ func (m My) MyFloor() {
 // MyGamma()
 // *****************************************************************************
 func (m My) MyGamma() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(math.Gamma(f))
 	}
@@ -243,7 +243,7 @@ func (m My) MyGamma() {
 // MyHypot()
 // *****************************************************************************
 func (m My) MyHypot() {
-	if checkStack(2) {
+	if checkFStack(2) {
 		f2, _ := fs.Pop()
 		f1, _ := fs.Pop()
 		fs.Push(math.Hypot(f1, f2))
@@ -254,7 +254,7 @@ func (m My) MyHypot() {
 // MyInv()
 // *****************************************************************************
 func (m My) MyInv() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(1 / f)
 	}
@@ -264,7 +264,7 @@ func (m My) MyInv() {
 // MyLog()
 // *****************************************************************************
 func (m My) MyLog() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(math.Log(f))
 	}
@@ -274,7 +274,7 @@ func (m My) MyLog() {
 // MyLog10()
 // *****************************************************************************
 func (m My) MyLog10() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(math.Log10(f))
 	}
@@ -291,7 +291,7 @@ func (m My) MyRnd() {
 // MyRound()
 // *****************************************************************************
 func (m My) MyRound() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(math.Round(f))
 	}
@@ -301,7 +301,7 @@ func (m My) MyRound() {
 // MySin()
 // *****************************************************************************
 func (m My) MySin() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(math.Sin(f))
 	}
@@ -311,7 +311,7 @@ func (m My) MySin() {
 // MySinh()
 // *****************************************************************************
 func (m My) MySinh() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(math.Sinh(f))
 	}
@@ -321,7 +321,7 @@ func (m My) MySinh() {
 // MySqrt()
 // *****************************************************************************
 func (m My) MySqrt() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(math.Sqrt(f))
 	}
@@ -331,7 +331,7 @@ func (m My) MySqrt() {
 // MyTan()
 // *****************************************************************************
 func (m My) MyTan() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(math.Tan(f))
 	}
@@ -341,7 +341,7 @@ func (m My) MyTan() {
 // MyTanh()
 // *****************************************************************************
 func (m My) MyTanh() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(math.Tanh(f))
 	}
@@ -351,7 +351,7 @@ func (m My) MyTanh() {
 // MyTrunc()
 // *****************************************************************************
 func (m My) MyTrunc() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(math.Trunc(f))
 	}
@@ -361,7 +361,7 @@ func (m My) MyTrunc() {
 // MyFrac()
 // *****************************************************************************
 func (m My) MyFrac() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		_, frac := math.Modf(f)
 		fs.Push(frac)
@@ -393,7 +393,7 @@ func (m My) MyPhi() {
 // MyPow()
 // *****************************************************************************
 func (m My) MyPow() {
-	if checkStack(2) {
+	if checkFStack(2) {
 		f2, _ := fs.Pop()
 		f1, _ := fs.Pop()
 		fs.Push(math.Pow(f1, f2))
@@ -404,7 +404,7 @@ func (m My) MyPow() {
 // MySqr()
 // *****************************************************************************
 func (m My) MySqr() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(math.Pow(f, 2))
 	}
@@ -414,7 +414,7 @@ func (m My) MySqr() {
 // MyRoot()
 // *****************************************************************************
 func (m My) MyRoot() {
-	if checkStack(2) {
+	if checkFStack(2) {
 		f2, _ := fs.Pop()
 		f1, _ := fs.Pop()
 		fs.Push(math.Pow(f1, 1/f2))
@@ -444,7 +444,7 @@ func factorial(number float64) float64 {
 // MyFact()
 // *****************************************************************************
 func (m My) MyFact() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(factorial(f))
 	}
@@ -454,7 +454,7 @@ func (m My) MyFact() {
 // MyTorad()
 // *****************************************************************************
 func (m My) MyTorad() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(f * deg2rad)
 	}
@@ -464,7 +464,7 @@ func (m My) MyTorad() {
 // MyTodeg()
 // *****************************************************************************
 func (m My) MyTodeg() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(f * rad2deg)
 	}
@@ -474,7 +474,7 @@ func (m My) MyTodeg() {
 // MyTodms()
 // *****************************************************************************
 func (m My) MyTodms() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		sign := 1.0
 		if f < 0 {
@@ -496,7 +496,7 @@ func (m My) MyTodms() {
 // MyTodec()
 // *****************************************************************************
 func (m My) MyTodec() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		sign := 1.0
 		if f < 0 {
@@ -546,7 +546,7 @@ func getDayFromDate(dh float64) float64 {
 // MyDay()
 // *****************************************************************************
 func (m My) MyDay() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(f)
 		fs.Push(getDayFromDate(f))
@@ -567,7 +567,7 @@ func getMonthFromDate(dh float64) float64 {
 // MyMonth()
 // *****************************************************************************
 func (m My) MyMonth() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(f)
 		fs.Push(getMonthFromDate(f))
@@ -586,7 +586,7 @@ func getYearFromDate(dh float64) float64 {
 // MyYear()
 // *****************************************************************************
 func (m My) MyYear() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(f)
 		fs.Push(getYearFromDate(f))
@@ -607,7 +607,7 @@ func getHourFromDate(dh float64) float64 {
 // MyHour()
 // *****************************************************************************
 func (m My) MyHour() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(f)
 		fs.Push(getHourFromDate(f))
@@ -630,7 +630,7 @@ func getMinuteFromDate(dh float64) float64 {
 // MyMinute()
 // *****************************************************************************
 func (m My) MyMinute() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(f)
 		fs.Push(getMinuteFromDate(f))
@@ -653,7 +653,7 @@ func getSecondFromDate(dh float64) float64 {
 // MySecond()
 // *****************************************************************************
 func (m My) MySecond() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(f)
 		fs.Push(getSecondFromDate(f))
@@ -664,7 +664,7 @@ func (m My) MySecond() {
 // MyDate()
 // *****************************************************************************
 func (m My) MyDate() {
-	if checkStack(6) {
+	if checkFStack(6) {
 		ss, _ := fs.Pop()
 		nn, _ := fs.Pop()
 		hh, _ := fs.Pop()
@@ -731,7 +731,7 @@ func getDifference(a, b time.Time) (days, hours, minutes, seconds int) {
 // MyDdiff()
 // *****************************************************************************
 func (m My) MyDdiff() {
-	if checkStack(2) {
+	if checkFStack(2) {
 		d1, _ := fs.Pop()
 		d2, _ := fs.Pop()
 

@@ -35,9 +35,9 @@ import (
 // GLOBALS
 // *****************************************************************************
 var (
-	loopme = true
-	fs     *stack.FStack
-	// ss       *stack.SStack
+	loopme   = true
+	fs       *stack.FStack
+	ss       *stack.SStack
 	appDir   string
 	previous string
 )
@@ -63,10 +63,11 @@ func init() {
 	}
 	// Some blahblah
 	greetings()
-	// Create the stack
+	// Create the stacks
 	fs = stack.NewFStack()
-	// Deserialize the previous stack, if any
-	readStack()
+	ss = stack.NewSStack()
+	// Deserialize the previous stacks, if any
+	readStacks()
 }
 
 // *****************************************************************************
@@ -84,8 +85,8 @@ func main() {
 		// Parse the input and execute
 		parse(text)
 	}
-	// Serialize the current stack
-	saveStack()
+	// Serialize the current stacks
+	saveStacks()
 	fmt.Printf("\n%s Bye.\n\n", ICON_DISK)
 }
 
@@ -154,7 +155,7 @@ func xeq(cmd string) {
 			case "cls", "clr", "clear":
 				doClear()
 			case "show", ".s":
-				showStack()
+				showFStack()
 			case "swap":
 				doSwap()
 			case "rot":
@@ -184,9 +185,9 @@ func isFloat(c string) bool {
 }
 
 // *****************************************************************************
-// checkStack()
+// checkFStack()
 // *****************************************************************************
-func checkStack(n int) bool {
+func checkFStack(n int) bool {
 	// Do we have enough args on stack to perform the selected operation ?
 	if fs.Depth() >= n {
 		return true
@@ -200,7 +201,7 @@ func checkStack(n int) bool {
 // doDrop()
 // *****************************************************************************
 func doDrop() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		fs.Pop()
 	}
 }
@@ -209,7 +210,7 @@ func doDrop() {
 // doDup()
 // *****************************************************************************
 func doDup() {
-	if checkStack(1) {
+	if checkFStack(1) {
 		f, _ := fs.Pop()
 		fs.Push(f)
 		fs.Push(f)
@@ -231,9 +232,9 @@ func doDepth() {
 }
 
 // *****************************************************************************
-// showStack()
+// showFStack()
 // *****************************************************************************
-func showStack() {
+func showFStack() {
 	for i, value := range fs.S {
 		i = fs.Depth() - 1 - i
 		if math.Log10(math.Abs(value)) > 12 {
@@ -245,36 +246,50 @@ func showStack() {
 }
 
 // *****************************************************************************
-// saveStack()
+// saveStacks()
 // *****************************************************************************
-func saveStack() {
-	// Serialize the stack on disk into the application folder
-	dataFile, err := os.Create(filepath.Join(appDir, STACK_FILE))
+func saveStacks() {
+	// Serialize the Float64 stack on disk into the application folder
+	fsFile, err := os.Create(filepath.Join(appDir, FSTACK_FILE))
 	if err == nil {
-		dataEncoder := gob.NewEncoder(dataFile)
-		dataEncoder.Encode(fs.S)
+		fsEncoder := gob.NewEncoder(fsFile)
+		fsEncoder.Encode(fs.S)
 	}
-	dataFile.Close()
+	fsFile.Close()
+	// Serialize the string stack on disk into the application folder
+	ssFile, err := os.Create(filepath.Join(appDir, SSTACK_FILE))
+	if err == nil {
+		ssEncoder := gob.NewEncoder(ssFile)
+		ssEncoder.Encode(ss.S)
+	}
+	ssFile.Close()
 }
 
 // *****************************************************************************
-// readStack()
+// readStacks()
 // *****************************************************************************
-func readStack() {
-	// Deserialize the previous stack stored into the application folder, if any
-	dataFile, err := os.Open(filepath.Join(appDir, STACK_FILE))
+func readStacks() {
+	// Deserialize the previous Float64 stack stored into the application folder, if any
+	fsFile, err := os.Open(filepath.Join(appDir, FSTACK_FILE))
 	if err == nil {
-		dataDecoder := gob.NewDecoder(dataFile)
-		dataDecoder.Decode(&fs.S)
+		fsDecoder := gob.NewDecoder(fsFile)
+		fsDecoder.Decode(&fs.S)
 	}
-	dataFile.Close()
+	fsFile.Close()
+	// Deserialize the previous string stack stored into the application folder, if any
+	ssFile, err := os.Open(filepath.Join(appDir, SSTACK_FILE))
+	if err == nil {
+		ssDecoder := gob.NewDecoder(ssFile)
+		ssDecoder.Decode(&ss.S)
+	}
+	ssFile.Close()
 }
 
 // *****************************************************************************
 // doSwap()
 // *****************************************************************************
 func doSwap() {
-	if checkStack(2) {
+	if checkFStack(2) {
 		f2, _ := fs.Pop()
 		f1, _ := fs.Pop()
 		fs.Push(f2)
@@ -286,7 +301,7 @@ func doSwap() {
 // doRot()
 // *****************************************************************************
 func doRot() {
-	if checkStack(3) {
+	if checkFStack(3) {
 		f3, _ := fs.Pop()
 		f2, _ := fs.Pop()
 		f1, _ := fs.Pop()

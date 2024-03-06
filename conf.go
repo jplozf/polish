@@ -23,7 +23,8 @@ const (
 	APP_STRING  = "Polish © jpl@ozf.fr 2024"
 	APP_URL     = "https://github.com/jplozf/polish"
 	APP_FOLDER  = ".polish"
-	STACK_FILE  = "stack.gob"
+	FSTACK_FILE = "fstack.gob"
+	SSTACK_FILE = "sstack.gob"
 )
 
 // *****************************************************************************

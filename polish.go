@@ -35,8 +35,9 @@ import (
 // GLOBALS
 // *****************************************************************************
 var (
-	loopme   = true
-	s        *stack.Stack
+	loopme = true
+	fs     *stack.FStack
+	// ss       *stack.SStack
 	appDir   string
 	previous string
 )
@@ -63,7 +64,7 @@ func init() {
 	// Some blahblah
 	greetings()
 	// Create the stack
-	s = stack.NewStack()
+	fs = stack.NewFStack()
 	// Deserialize the previous stack, if any
 	readStack()
 }
@@ -115,7 +116,7 @@ func xeq(cmd string) {
 	if isFloat(cmd) {
 		// Then push it on the stack
 		v, _ := strconv.ParseFloat(cmd, 64)
-		s.Push(v)
+		fs.Push(v)
 	} else {
 		// Is it a mathematical function defined into mymath.go
 		// under the shape MyFunction ?
@@ -187,7 +188,7 @@ func isFloat(c string) bool {
 // *****************************************************************************
 func checkStack(n int) bool {
 	// Do we have enough args on stack to perform the selected operation ?
-	if s.Depth() >= n {
+	if fs.Depth() >= n {
 		return true
 	} else {
 		fmt.Println("\t" + color.Red + "Not enough arguments on stack" + color.Reset)
@@ -200,7 +201,7 @@ func checkStack(n int) bool {
 // *****************************************************************************
 func doDrop() {
 	if checkStack(1) {
-		s.Pop()
+		fs.Pop()
 	}
 }
 
@@ -209,9 +210,9 @@ func doDrop() {
 // *****************************************************************************
 func doDup() {
 	if checkStack(1) {
-		f, _ := s.Pop()
-		s.Push(f)
-		s.Push(f)
+		f, _ := fs.Pop()
+		fs.Push(f)
+		fs.Push(f)
 	}
 }
 
@@ -219,22 +220,22 @@ func doDup() {
 // doClear()
 // *****************************************************************************
 func doClear() {
-	s.S = nil
+	fs.S = nil
 }
 
 // *****************************************************************************
 // doDepth()
 // *****************************************************************************
 func doDepth() {
-	s.Push(float64(len(s.S)))
+	fs.Push(float64(fs.Depth()))
 }
 
 // *****************************************************************************
 // showStack()
 // *****************************************************************************
 func showStack() {
-	for i, value := range s.S {
-		i = len(s.S) - 1 - i
+	for i, value := range fs.S {
+		i = fs.Depth() - 1 - i
 		if math.Log10(math.Abs(value)) > 12 {
 			fmt.Printf("\t%05d : %21.6E\n", i, value)
 		} else {
@@ -251,7 +252,7 @@ func saveStack() {
 	dataFile, err := os.Create(filepath.Join(appDir, STACK_FILE))
 	if err == nil {
 		dataEncoder := gob.NewEncoder(dataFile)
-		dataEncoder.Encode(s.S)
+		dataEncoder.Encode(fs.S)
 	}
 	dataFile.Close()
 }
@@ -264,7 +265,7 @@ func readStack() {
 	dataFile, err := os.Open(filepath.Join(appDir, STACK_FILE))
 	if err == nil {
 		dataDecoder := gob.NewDecoder(dataFile)
-		dataDecoder.Decode(&s.S)
+		dataDecoder.Decode(&fs.S)
 	}
 	dataFile.Close()
 }
@@ -274,10 +275,10 @@ func readStack() {
 // *****************************************************************************
 func doSwap() {
 	if checkStack(2) {
-		f2, _ := s.Pop()
-		f1, _ := s.Pop()
-		s.Push(f2)
-		s.Push(f1)
+		f2, _ := fs.Pop()
+		f1, _ := fs.Pop()
+		fs.Push(f2)
+		fs.Push(f1)
 	}
 }
 
@@ -286,12 +287,12 @@ func doSwap() {
 // *****************************************************************************
 func doRot() {
 	if checkStack(3) {
-		f3, _ := s.Pop()
-		f2, _ := s.Pop()
-		f1, _ := s.Pop()
-		s.Push(f3)
-		s.Push(f1)
-		s.Push(f2)
+		f3, _ := fs.Pop()
+		f2, _ := fs.Pop()
+		f1, _ := fs.Pop()
+		fs.Push(f3)
+		fs.Push(f1)
+		fs.Push(f2)
 	}
 }
 
@@ -301,17 +302,17 @@ func doRot() {
 func showPrompt() {
 	var prompt string
 	// Do we have something into the stack to display
-	if len(s.S) > 0 {
-		f := s.S[len(s.S)-1]
+	if fs.Depth() > 0 {
+		f := fs.S[fs.Depth()-1]
 		// We use scientific notation if the number of digits is greater than 12
 		if math.Log10(math.Abs(f)) > 12 {
-			prompt = fmt.Sprintf("[%05d] %s%21.6E%s %s ", s.Depth(), color.Green, f, color.Reset, ICON_ARROW)
+			prompt = fmt.Sprintf("[%05d] %s%21.6E%s %s ", fs.Depth(), color.Green, f, color.Reset, ICON_ARROW)
 		} else {
-			prompt = fmt.Sprintf("[%05d] %s%21.6f%s %s ", s.Depth(), color.Green, f, color.Reset, ICON_ARROW)
+			prompt = fmt.Sprintf("[%05d] %s%21.6f%s %s ", fs.Depth(), color.Green, f, color.Reset, ICON_ARROW)
 		}
 	} else {
 		// Nothing to display
-		prompt = fmt.Sprintf("[%05d]           Empty stack %s ", s.Depth(), ICON_ARROW)
+		prompt = fmt.Sprintf("[%05d]           Empty stack %s ", fs.Depth(), ICON_ARROW)
 	}
 	fmt.Printf("%s", prompt)
 }

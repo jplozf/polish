@@ -23,22 +23,27 @@ import (
 // *****************************************************************************
 // TYPES
 // *****************************************************************************
-type Stack struct {
+type FStack struct {
 	lock sync.Mutex // you don't have to do this if you don't want thread safety
 	S    []float64
 }
 
+type SStack struct {
+	lock sync.Mutex // you don't have to do this if you don't want thread safety
+	S    []string
+}
+
 // *****************************************************************************
-// NewStack()
+// NewFStack()
 // *****************************************************************************
-func NewStack() *Stack {
-	return &Stack{sync.Mutex{}, make([]float64, 0)}
+func NewFStack() *FStack {
+	return &FStack{sync.Mutex{}, make([]float64, 0)}
 }
 
 // *****************************************************************************
 // Push()
 // *****************************************************************************
-func (s *Stack) Push(v float64) {
+func (s *FStack) Push(v float64) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -48,13 +53,13 @@ func (s *Stack) Push(v float64) {
 // *****************************************************************************
 // Pop()
 // *****************************************************************************
-func (s *Stack) Pop() (float64, error) {
+func (s *FStack) Pop() (float64, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
 	l := len(s.S)
 	if l == 0 {
-		return 0, errors.New("empty stack")
+		return 0, errors.New("empty float stack")
 	}
 
 	res := s.S[l-1]
@@ -65,6 +70,47 @@ func (s *Stack) Pop() (float64, error) {
 // *****************************************************************************
 // Depth()
 // *****************************************************************************
-func (s *Stack) Depth() int {
+func (s *FStack) Depth() int {
+	return len(s.S)
+}
+
+// *****************************************************************************
+// NewSStack()
+// *****************************************************************************
+func NewSStack() *SStack {
+	return &SStack{sync.Mutex{}, make([]string, 0)}
+}
+
+// *****************************************************************************
+// Push()
+// *****************************************************************************
+func (s *SStack) Push(v string) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	s.S = append(s.S, v)
+}
+
+// *****************************************************************************
+// Pop()
+// *****************************************************************************
+func (s *SStack) Pop() (string, error) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	l := len(s.S)
+	if l == 0 {
+		return "", errors.New("empty string stack")
+	}
+
+	res := s.S[l-1]
+	s.S = s.S[:l-1]
+	return res, nil
+}
+
+// *****************************************************************************
+// Depth()
+// *****************************************************************************
+func (s *SStack) Depth() int {
 	return len(s.S)
 }

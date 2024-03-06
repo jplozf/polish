@@ -33,6 +33,8 @@ const (
 var (
 	ICON_DISK  = "⛁"
 	ICON_ARROW = "⯈"
+	BUILD_TIME string
+	GIT_COMMIT string
 )
 
 // *****************************************************************************

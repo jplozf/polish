@@ -95,7 +95,7 @@ func main() {
 // *****************************************************************************
 func greetings() {
 	fmt.Printf("%s Welcome to %s\n", ICON_DISK, APP_STRING)
-	fmt.Printf("%s %s version %s\n", ICON_DISK, APP_NAME, APP_VERSION)
+	fmt.Printf("%s %s version %s build %s at %s\n", ICON_DISK, APP_NAME, APP_VERSION, GIT_COMMIT, BUILD_TIME)
 	fmt.Printf("%s %s\n\n", ICON_DISK, APP_URL)
 }
 

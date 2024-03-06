@@ -3,7 +3,7 @@
 ## Summary
 
 - Polish is a RPN calulator for text console environment.
-- Polish is cross platform, tested on Linux and Windows.
+- Polish is cross platform, tested on Linux, Windows and Android (Termux).
 - Polish is written in Go language.
 
 ## Authors
@@ -17,7 +17,7 @@
 
 ## Features
 
-* Basic functions
+* Algebrical functions
     - add, substract, multiply and divide
     - power, logarithms, exponential and factorial
 * Trigonometric functions
@@ -30,9 +30,9 @@
 
 ## Functions
 ``` 
-+ ( n n -- n ) push the sum
-- ( n n -- n ) push the difference
-abs ( n -- n ) push the absolute value
-acos ( n -- n ) push the arcos value of the radian angle
++       ( n1 n2 -- n3 ) Add n1 to n2 giving the sum n3.
+-       ( n1 n2 -- n3 ) Substract n2 from n1, giving n3.
+abs     ( n1 -- n2 )    n2 is the absolute value of n1.
+acos    ( n1 -- n2 )    n2 is the principal angle whose cosine is n1.
 
 ``` 

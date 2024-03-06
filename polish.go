@@ -75,11 +75,15 @@ func main() {
 	reader := bufio.NewReader(os.Stdin)
 
 	for ok := true; ok; ok = loopme {
+		// Display the prompt
 		showPrompt()
+		// Read the input
 		text, _ := reader.ReadString('\n')
 		text = strings.Replace(text, "\n", "", -1)
+		// Parse the input and execute
 		parse(text)
 	}
+	// Serialize the current stack
 	saveStack()
 	fmt.Printf("\n⛁ Bye.\n\n")
 }
@@ -107,16 +111,22 @@ func parse(txt string) {
 // xeq()
 // *****************************************************************************
 func xeq(cmd string) {
+	// Is it a number
 	if isFloat(cmd) {
+		// Then push it on the stack
 		v, _ := strconv.ParseFloat(cmd, 64)
 		s.Push(v)
 	} else {
+		// Is it a mathematical function defined into mymath.go
+		// under the shape MyFunction
 		m := My{}
 		mName := "My" + strings.Title(strings.ToLower(cmd))
 		meth := reflect.ValueOf(m).MethodByName(mName)
 		if meth.IsValid() {
+			// Yes : call it
 			meth.Call(nil)
 		} else {
+			// Here are special functions, stack handling and alias
 			switch cmd {
 			case "!!":
 				xeq(previous)

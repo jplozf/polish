@@ -1,5 +1,7 @@
 package main
 
+import "runtime"
+
 // *****************************************************************************
 //  __________      .__  .__       .__
 //  \______   \____ |  | |__| _____|  |__
@@ -23,3 +25,23 @@ const (
 	APP_FOLDER  = ".polish"
 	STACK_FILE  = "stack.gob"
 )
+
+// *****************************************************************************
+// VARS
+// *****************************************************************************
+var (
+	ICON_DISK  = "⛁"
+	ICON_ARROW = "⯈"
+)
+
+// *****************************************************************************
+// init()
+// *****************************************************************************
+func init() {
+	if runtime.GOOS == "windows" || runtime.GOOS == "android" {
+		// These UTF8 icons are not correctly rendered in Windows or Android's Termux,
+		// so we convert them to plain vanilla ASCII characters
+		ICON_DISK = "#"
+		ICON_ARROW = ">"
+	}
+}

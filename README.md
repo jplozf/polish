@@ -3,7 +3,7 @@
 ## Summary
 
 - Polish is a RPN calulator for text console environment.
-- Polish is cross platform, tested on Linux, Windows and Android (Termux).
+- Polish is cross platform, tested on Linux, Windows and Android (Termux), should run on macOS.
 - Polish is written in Go language.
 
 ## Authors

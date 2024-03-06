@@ -85,16 +85,16 @@ func main() {
 	}
 	// Serialize the current stack
 	saveStack()
-	fmt.Printf("\n⛁ Bye.\n\n")
+	fmt.Printf("\n%s Bye.\n\n", ICON_DISK)
 }
 
 // *****************************************************************************
 // greetings()
 // *****************************************************************************
 func greetings() {
-	fmt.Printf("⛁ Welcome to %s\n", APP_STRING)
-	fmt.Printf("⛁ %s version %s\n", APP_NAME, APP_VERSION)
-	fmt.Printf("⛁ %s\n\n", APP_URL)
+	fmt.Printf("%s Welcome to %s\n", ICON_DISK, APP_STRING)
+	fmt.Printf("%s %s version %s\n", ICON_DISK, APP_NAME, APP_VERSION)
+	fmt.Printf("%s %s\n\n", ICON_DISK, APP_URL)
 }
 
 // *****************************************************************************
@@ -111,14 +111,14 @@ func parse(txt string) {
 // xeq()
 // *****************************************************************************
 func xeq(cmd string) {
-	// Is it a number
+	// Is it a number ?
 	if isFloat(cmd) {
 		// Then push it on the stack
 		v, _ := strconv.ParseFloat(cmd, 64)
 		s.Push(v)
 	} else {
 		// Is it a mathematical function defined into mymath.go
-		// under the shape MyFunction
+		// under the shape MyFunction ?
 		m := My{}
 		mName := "My" + strings.Title(strings.ToLower(cmd))
 		meth := reflect.ValueOf(m).MethodByName(mName)
@@ -186,7 +186,7 @@ func isFloat(c string) bool {
 // checkStack()
 // *****************************************************************************
 func checkStack(n int) bool {
-	// Do we have enough args on stack to perform the selected operation
+	// Do we have enough args on stack to perform the selected operation ?
 	if s.Depth() >= n {
 		return true
 	} else {
@@ -233,12 +233,12 @@ func doDepth() {
 // showStack()
 // *****************************************************************************
 func showStack() {
-	for k, v := range s.S {
-		k = len(s.S) - 1 - k
-		if math.Log10(math.Abs(v)) > 12 {
-			fmt.Printf("\t%05d : %21.6E\n", k, v)
+	for i, value := range s.S {
+		i = len(s.S) - 1 - i
+		if math.Log10(math.Abs(value)) > 12 {
+			fmt.Printf("\t%05d : %21.6E\n", i, value)
 		} else {
-			fmt.Printf("\t%05d : %21.6f\n", k, v)
+			fmt.Printf("\t%05d : %21.6f\n", i, value)
 		}
 	}
 }
@@ -305,13 +305,13 @@ func showPrompt() {
 		f := s.S[len(s.S)-1]
 		// We use scientific notation if the number of digits is greater than 12
 		if math.Log10(math.Abs(f)) > 12 {
-			prompt = fmt.Sprintf("[%05d] %s%21.6E%s ⯈ ", s.Depth(), color.Green, f, color.Reset)
+			prompt = fmt.Sprintf("[%05d] %s%21.6E%s %s ", s.Depth(), color.Green, f, color.Reset, ICON_ARROW)
 		} else {
-			prompt = fmt.Sprintf("[%05d] %s%21.6f%s ⯈ ", s.Depth(), color.Green, f, color.Reset)
+			prompt = fmt.Sprintf("[%05d] %s%21.6f%s %s ", s.Depth(), color.Green, f, color.Reset, ICON_ARROW)
 		}
 	} else {
 		// Nothing to display
-		prompt = fmt.Sprintf("[%05d]           Empty stack ⯈ ", s.Depth())
+		prompt = fmt.Sprintf("[%05d]           Empty stack %s ", s.Depth(), ICON_ARROW)
 	}
 	fmt.Printf("%s", prompt)
 }

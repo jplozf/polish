@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Linux Binaries
-GOOS=linux GOARCH=amd64 go build -o bin/linux/polish-amd6464
+GOOS=linux GOARCH=amd64 go build -o bin/linux/polish-amd64
 GOOS=linux GOARCH=386 go build -o bin/linux/polish-386
 
 # Windows Binaries

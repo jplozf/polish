@@ -236,9 +236,9 @@ func showStack() {
 	for k, v := range s.S {
 		k = len(s.S) - 1 - k
 		if math.Log10(math.Abs(v)) > 12 {
-			fmt.Printf("\t%05d : %20.6E\n", k, v)
+			fmt.Printf("\t%05d : %21.6E\n", k, v)
 		} else {
-			fmt.Printf("\t%05d : %20.6f\n", k, v)
+			fmt.Printf("\t%05d : %21.6f\n", k, v)
 		}
 	}
 }
@@ -305,13 +305,13 @@ func showPrompt() {
 		f := s.S[len(s.S)-1]
 		// We use scientific notation if the number of digits is greater than 12
 		if math.Log10(math.Abs(f)) > 12 {
-			prompt = fmt.Sprintf("[%05d] %s%20.6E%s ⯈ ", s.Depth(), color.Green, f, color.Reset)
+			prompt = fmt.Sprintf("[%05d] %s%21.6E%s ⯈ ", s.Depth(), color.Green, f, color.Reset)
 		} else {
-			prompt = fmt.Sprintf("[%05d] %s%20.6f%s ⯈ ", s.Depth(), color.Green, f, color.Reset)
+			prompt = fmt.Sprintf("[%05d] %s%21.6f%s ⯈ ", s.Depth(), color.Green, f, color.Reset)
 		}
 	} else {
 		// Nothing to display
-		prompt = fmt.Sprintf("[%05d]          Empty stack ⯈ ", s.Depth())
+		prompt = fmt.Sprintf("[%05d]           Empty stack ⯈ ", s.Depth())
 	}
 	fmt.Printf("%s", prompt)
 }

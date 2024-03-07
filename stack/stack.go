@@ -28,7 +28,7 @@ type FStack struct {
 	S    []float64
 }
 
-type SStack struct {
+type AStack struct {
 	lock sync.Mutex // you don't have to do this if you don't want thread safety
 	S    []string
 }
@@ -75,16 +75,16 @@ func (s *FStack) Depth() int {
 }
 
 // *****************************************************************************
-// NewSStack()
+// NewAStack()
 // *****************************************************************************
-func NewSStack() *SStack {
-	return &SStack{sync.Mutex{}, make([]string, 0)}
+func NewAStack() *AStack {
+	return &AStack{sync.Mutex{}, make([]string, 0)}
 }
 
 // *****************************************************************************
 // Push()
 // *****************************************************************************
-func (s *SStack) Push(v string) {
+func (s *AStack) Push(v string) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -94,7 +94,7 @@ func (s *SStack) Push(v string) {
 // *****************************************************************************
 // Pop()
 // *****************************************************************************
-func (s *SStack) Pop() (string, error) {
+func (s *AStack) Pop() (string, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -111,6 +111,6 @@ func (s *SStack) Pop() (string, error) {
 // *****************************************************************************
 // Depth()
 // *****************************************************************************
-func (s *SStack) Depth() int {
+func (s *AStack) Depth() int {
 	return len(s.S)
 }

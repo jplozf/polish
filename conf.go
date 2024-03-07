@@ -24,7 +24,7 @@ const (
 	APP_URL     = "https://github.com/jplozf/polish"
 	APP_FOLDER  = ".polish"
 	FSTACK_FILE = "fstack.gob"
-	SSTACK_FILE = "sstack.gob"
+	ASTACK_FILE = "astack.gob"
 )
 
 // *****************************************************************************
@@ -33,8 +33,8 @@ const (
 var (
 	ICON_DISK  = "⛁"
 	ICON_ARROW = "⯈"
-	BUILD_TIME string
-	GIT_COMMIT string
+	BUILD_TIME = "NULL"
+	GIT_COMMIT = "NULL"
 )
 
 // *****************************************************************************

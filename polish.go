@@ -37,7 +37,7 @@ import (
 var (
 	loopme   = true
 	fs       *stack.FStack
-	ss       *stack.SStack
+	as       *stack.AStack
 	appDir   string
 	previous string
 )
@@ -65,7 +65,7 @@ func init() {
 	greetings()
 	// Create the stacks
 	fs = stack.NewFStack()
-	ss = stack.NewSStack()
+	as = stack.NewAStack()
 	// Deserialize the previous stacks, if any
 	readStacks()
 }
@@ -237,6 +237,7 @@ func doDepth() {
 func showFStack() {
 	for i, value := range fs.S {
 		i = fs.Depth() - 1 - i
+		// We use scientific notation if the number of digits is greater than 12
 		if math.Log10(math.Abs(value)) > 12 {
 			fmt.Printf("\t%05d : %21.6E\n", i, value)
 		} else {
@@ -257,12 +258,12 @@ func saveStacks() {
 	}
 	fsFile.Close()
 	// Serialize the string stack on disk into the application folder
-	ssFile, err := os.Create(filepath.Join(appDir, SSTACK_FILE))
+	asFile, err := os.Create(filepath.Join(appDir, ASTACK_FILE))
 	if err == nil {
-		ssEncoder := gob.NewEncoder(ssFile)
-		ssEncoder.Encode(ss.S)
+		asEncoder := gob.NewEncoder(asFile)
+		asEncoder.Encode(as.S)
 	}
-	ssFile.Close()
+	asFile.Close()
 }
 
 // *****************************************************************************
@@ -277,12 +278,12 @@ func readStacks() {
 	}
 	fsFile.Close()
 	// Deserialize the previous string stack stored into the application folder, if any
-	ssFile, err := os.Open(filepath.Join(appDir, SSTACK_FILE))
+	asFile, err := os.Open(filepath.Join(appDir, ASTACK_FILE))
 	if err == nil {
-		ssDecoder := gob.NewDecoder(ssFile)
-		ssDecoder.Decode(&ss.S)
+		asDecoder := gob.NewDecoder(asFile)
+		asDecoder.Decode(&as.S)
 	}
-	ssFile.Close()
+	asFile.Close()
 }
 
 // *****************************************************************************

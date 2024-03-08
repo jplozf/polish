@@ -783,15 +783,6 @@ func (m My) MyD2000() {
 }
 
 /*
-date 	( yyyy mm dd hh nn ss -- d.h )
-now		( -- d.h )						20240327.202346
-day		( d.h -- d.h dd )				27
-month	( d.h -- d.h mm )				3
-year	( d.h -- d.h yyyy )				2024
-hour	( d.h -- d.h hh )				20
-minute	( d.h -- d.h nn )				23
-second	( d.h -- d.h ss )				46
-
 +day	( d.h n -- d.h )
 +month	( d.h n -- d.h )
 +year	( d.h n -- d.h )
@@ -805,61 +796,4 @@ second	( d.h -- d.h ss )				46
 -hour	( d.h n -- d.h )
 -minute	( d.h n -- d.h )
 -second	( d.h n -- d.h )
-
-ddiff	( d.h d.h -- d h m s )
-
-https://www.tutorialspoint.com/golang-program-to-calculate-difference-between-two-time-periods
-func leapYears(date time.Time) (leaps int) {
-   y, m, _ := date.Date()
-   if m <= 2 {
-      y--
-   }
-   leaps = y/4 + y/400 - y/100
-   return leaps
-}
-func getDifference(a, b time.Time) (days, hours, minutes, seconds int) {
-   monthDays := [12]int{31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
-   y1, m1, d1 := a.Date()
-   y2, m2, d2 := b.Date()
-   h1, min1, s1 := a.Clock()
-   h2, min2, s2 := b.Clock()
-   totalDays1 := y1*365 + d1
-   for i := 0; i < (int)(m1)-1; i++ {
-      totalDays1 += monthDays[i]
-   }
-   totalDays1 += leapYears(a)
-   totalDays2 := y2*365 + d2
-   for i := 0; i < (int)(m2)-1; i++ {
-      totalDays2 += monthDays[i]
-   }
-   totalDays2 += leapYears(b)
-   days = totalDays2 - totalDays1
-   hours = h2 - h1
-   minutes = min2 - min1
-   seconds = s2 - s1
-   if seconds < 0 {
-      seconds += 60
-      minutes--
-   }
-   if minutes < 0 {
-      minutes += 60
-      hours--
-   }
-   if hours < 0 {
-      hours += 24
-      days--
-   }
-   return days, hours, minutes, seconds
-}
-func main() {
-   date1 := time.Date(2020, 4, 27, 23, 35, 0, 0, time.UTC)
-   date2 := time.Date(2018, 5, 12, 12, 43, 23, 0, time.UTC)
-   if date1.After(date2) {
-      date1, date2 = date2, date1
-   }
-   days, hours, minutes, seconds := getDifference(date1, date2)
-   fmt.Println("The difference between dates", date1, "and", date2, "is: ")
-   fmt.Printf("%v days\n%v hours\n%v minutes\n%v seconds", days, hours, minutes, seconds)
-}
-
 */

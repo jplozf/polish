@@ -14,7 +14,9 @@ package color
 
 // These values have been picked up from this article :
 // https://twin.sh/articles/35/how-to-add-colors-to-your-console-terminal-output-in-go
-// Many thanks to him.
+// Codes for 8-bit 256 colours are from :
+// https://stackoverflow.com/questions/4842424/list-of-ansi-color-escape-sequences
+// Many thanks to them.
 
 // *****************************************************************************
 // IMPORTS
@@ -25,8 +27,8 @@ import "runtime"
 // GLOBALS
 // *****************************************************************************
 var Reset = "\033[0m"
-var Red = "\033[31m"
-var Green = "\033[32m"
+var Red = "\033[38;5;196m"
+var Green = "\033[38;5;107m"
 var Yellow = "\033[33m"
 var Blue = "\033[34m"
 var Purple = "\033[35m"

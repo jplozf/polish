@@ -103,7 +103,16 @@ func greetings() {
 // parse()
 // *****************************************************************************
 func parse(txt string) {
-	words := strings.Fields(txt)
+	// https://stackoverflow.com/questions/47489745/splitting-a-string-at-space-except-inside-quotation-marks
+	// words := strings.Fields(txt)
+	quoted := false
+	words := strings.FieldsFunc(txt, func(r rune) bool {
+		if r == '"' {
+			quoted = !quoted
+		}
+		return !quoted && r == ' '
+	})
+
 	for _, w := range words {
 		xeq(w)
 	}
@@ -113,55 +122,92 @@ func parse(txt string) {
 // xeq()
 // *****************************************************************************
 func xeq(cmd string) {
-	// Is it a number ?
-	if isFloat(cmd) {
-		// Then push it on the stack
-		v, _ := strconv.ParseFloat(cmd, 64)
-		fs.Push(v)
-	} else {
-		// Is it a mathematical function defined into mymath.go
-		// under the shape MyFunction ?
-		m := My{}
-		mName := "My" + strings.Title(strings.ToLower(cmd))
-		meth := reflect.ValueOf(m).MethodByName(mName)
-		if meth.IsValid() {
-			// Yes : call it
-			meth.Call(nil)
+	// Is it a string ?
+	if cmd[0] == '"' {
+		s := ""
+		if cmd[len(cmd)-1] == '"' {
+			s = cmd[1 : len(cmd)-1]
 		} else {
-			// Here are special functions, stack handling and alias
-			switch cmd {
-			case "!!":
-				xeq(previous)
-			case "exit", "quit", "bye":
-				loopme = false
-			case "+":
-				m.MyAdd()
-			case "-":
-				m.MySub()
-			case "*":
-				m.MyMult()
-			case "/":
-				m.MyDiv()
-			case "**":
-				m.MyPow()
-			case "!":
-				m.MyFact()
-			case "drop":
-				doDrop()
-			case "dup":
-				doDup()
-			case "depth":
-				doDepth()
-			case "cls", "clr", "clear":
-				doClear()
-			case "show", ".s":
-				showFStack()
-			case "swap":
-				doSwap()
-			case "rot":
-				doRot()
-			default:
-				fmt.Printf("\t"+color.Red+"Unrecognized command '%s'\n"+color.Reset, cmd)
+			s = cmd[1:]
+		}
+		as.Push(s)
+	} else {
+		// Is it a number ?
+		if isFloat(cmd) {
+			// Then push it on the stack
+			v, _ := strconv.ParseFloat(cmd, 64)
+			fs.Push(v)
+		} else {
+			// Is it a mathematical function defined into mymath.go
+			// under the shape MyFunction ?
+			m := My{}
+			mName := "My" + strings.Title(strings.ToLower(cmd))
+			meth := reflect.ValueOf(m).MethodByName(mName)
+			if meth.IsValid() {
+				// Yes : call it
+				meth.Call(nil)
+			} else {
+				// Here are special functions, stack handling and alias
+				switch cmd {
+				case "!!":
+					xeq(previous)
+				case "exit", "quit", "bye":
+					loopme = false
+				case "+":
+					m.MyAdd()
+				case "-":
+					m.MySub()
+				case "*":
+					m.MyMult()
+				case "/":
+					m.MyDiv()
+				case "**":
+					m.MyPow()
+				case "!":
+					m.MyFact()
+				case "drop":
+					doDrop()
+				case "dup":
+					doDup()
+				case "depth":
+					doDepth()
+				case "cls", "clr", "clear":
+					doClear()
+				case ".f":
+					showFStack()
+				case ".a":
+					showAStack()
+				case "swap":
+					doSwap()
+				case "rot":
+					doRot()
+				case "adrop":
+					doADrop()
+				case "adup":
+					doADup()
+				case "adepth":
+					doADepth()
+				case "acls", "aclr", "aclear":
+					doAClear()
+				case "aswap":
+					doASwap()
+				case "+a", "aadd":
+					doAAdd()
+				case "+as", "aadds":
+					doAAdds()
+				case "*a":
+					doAMult()
+				case "alen":
+					doALen()
+				case "aright":
+					doARight()
+				case "aleft":
+					doALeft()
+				case "amid":
+					doAMid()
+				default:
+					raiseError(UNRECOGNIZED_COMMAND)
+				}
 			}
 		}
 	}
@@ -192,9 +238,30 @@ func checkFStack(n int) bool {
 	if fs.Depth() >= n {
 		return true
 	} else {
-		fmt.Println("\t" + color.Red + "Not enough arguments on stack" + color.Reset)
+		raiseError(NOT_ENOUGH_ARGS_FLOAT)
 		return false
 	}
+}
+
+// *****************************************************************************
+// checkAStack()
+// *****************************************************************************
+func checkAStack(n int) bool {
+	// Do we have enough args on stack to perform the selected operation ?
+	if as.Depth() >= n {
+		return true
+	} else {
+		raiseError(NOT_ENOUGH_ARGS_ALPHA)
+		return false
+	}
+}
+
+// *****************************************************************************
+// checkStacks()
+// *****************************************************************************
+func checkStacks(fn int, an int) bool {
+	// Do we have enough args on the two stacks to perform the selected operation ?
+	return (checkAStack(an) && checkFStack(fn))
 }
 
 // *****************************************************************************
@@ -239,10 +306,169 @@ func showFStack() {
 		i = fs.Depth() - 1 - i
 		// We use scientific notation if the number of digits is greater than 12
 		if math.Log10(math.Abs(value)) > 12 {
-			fmt.Printf("\t%05d : %21.6E\n", i, value)
+			fmt.Printf("[FLOAT]\t%05d : %21.6E\n", i, value)
 		} else {
-			fmt.Printf("\t%05d : %21.6f\n", i, value)
+			fmt.Printf("[FLOAT]\t%05d : %21.6f\n", i, value)
 		}
+	}
+}
+
+// *****************************************************************************
+// showAStack()
+// *****************************************************************************
+func showAStack() {
+	for i, value := range as.S {
+		i = as.Depth() - 1 - i
+		fmt.Printf("[ALPHA]\t%05d : %s\n", i, value)
+	}
+}
+
+// *****************************************************************************
+// doADrop()
+// *****************************************************************************
+func doADrop() {
+	if checkAStack(1) {
+		as.Pop()
+	}
+}
+
+// *****************************************************************************
+// doADup()
+// *****************************************************************************
+func doADup() {
+	if checkAStack(1) {
+		a, _ := as.Pop()
+		as.Push(a)
+		as.Push(a)
+	}
+}
+
+// *****************************************************************************
+// doAClear()
+// *****************************************************************************
+func doAClear() {
+	as.S = nil
+}
+
+// *****************************************************************************
+// doADepth()
+// *****************************************************************************
+func doADepth() {
+	fs.Push(float64(as.Depth()))
+}
+
+// *****************************************************************************
+// doASwap()
+// *****************************************************************************
+func doASwap() {
+	if checkAStack(2) {
+		a2, _ := as.Pop()
+		a1, _ := as.Pop()
+		as.Push(a2)
+		as.Push(a1)
+	}
+}
+
+// *****************************************************************************
+// doAAdd()
+// *****************************************************************************
+func doAAdd() {
+	if checkAStack(2) {
+		a2, _ := as.Pop()
+		a1, _ := as.Pop()
+		as.Push(a1 + a2)
+	}
+}
+
+// *****************************************************************************
+// doAAdds()
+// *****************************************************************************
+func doAAdds() {
+	if checkAStack(2) {
+		a2, _ := as.Pop()
+		a1, _ := as.Pop()
+		as.Push(a1 + " " + a2)
+	}
+}
+
+// *****************************************************************************
+// doAMult()
+// *****************************************************************************
+func doAMult() {
+	if checkStacks(1, 1) {
+		f, _ := fs.Pop()
+		a, _ := as.Pop()
+		o := ""
+		for i := 1; i <= int(f); i++ {
+			o += a
+		}
+		as.Push(o)
+	}
+}
+
+// *****************************************************************************
+// doALeft()
+// *****************************************************************************
+func doALeft() {
+	if checkStacks(1, 1) {
+		f, _ := fs.Pop()
+		a, _ := as.Pop()
+		if int(f) <= len(a) {
+			as.Push(a[0:int(f)])
+		} else {
+			raiseError(ALPHA_EXTRACT_OUT_OF_BOUNDS)
+		}
+	}
+}
+
+// *****************************************************************************
+// doARight()
+// *****************************************************************************
+func doARight() {
+	if checkStacks(1, 1) {
+		f, _ := fs.Pop()
+		a, _ := as.Pop()
+		if int(f) <= len(a) {
+			as.Push(a[len(a)-int(f):])
+		} else {
+			raiseError(ALPHA_EXTRACT_OUT_OF_BOUNDS)
+		}
+	}
+}
+
+// *****************************************************************************
+// doAMid()
+// *****************************************************************************
+func doAMid() {
+	if checkStacks(2, 1) {
+		/*
+			s = "12345"
+			s[0:1] = "1"
+			s[1:3] = "23"
+			s[4:5] = "5"
+			A slice is formed by specifying two indices, a low and high bound, separated by a colon:
+			a[low : high]
+			This selects a half-open range which includes the first element, but excludes the last one.
+			The slice is 0-indexed.
+		*/
+		n, _ := fs.Pop() // Number of extracted chars
+		s, _ := fs.Pop() // Start (0-indexed)
+		a, _ := as.Pop()
+		if int(s) < len(a) && int(s+n) <= len(a) && (s > 0) && (n > 0) {
+			as.Push(a[int(s) : int(s)+int(n)])
+		} else {
+			raiseError(ALPHA_EXTRACT_OUT_OF_BOUNDS)
+		}
+	}
+}
+
+// *****************************************************************************
+// doALen()
+// *****************************************************************************
+func doALen() {
+	if checkAStack(1) {
+		a, _ := as.Pop()
+		fs.Push(float64(len(a)))
 	}
 }
 

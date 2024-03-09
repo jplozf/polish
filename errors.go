@@ -28,6 +28,8 @@ const (
 	NOT_ENOUGH_ARGS_FLOAT
 	NOT_ENOUGH_ARGS_ALPHA
 	ALPHA_EXTRACT_OUT_OF_BOUNDS
+	NONEXISTENT_VARIABLE
+	MISSING_VARIABLE
 )
 
 // *****************************************************************************
@@ -40,6 +42,8 @@ func (e Error) String() string {
 		"Not enough arguments on float stack",
 		"Not enough arguments on alpha stack",
 		"Alpha extract out of bounds",
+		"Nonexistent variable name",
+		"Missing variable name",
 	}[e]
 }
 

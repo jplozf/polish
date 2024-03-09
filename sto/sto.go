@@ -1,6 +1,4 @@
-package main
-
-import "runtime"
+package sto
 
 // *****************************************************************************
 //  __________      .__  .__       .__
@@ -15,37 +13,27 @@ import "runtime"
 // *****************************************************************************
 
 // *****************************************************************************
-// CONSTS
+// GLOBALS
 // *****************************************************************************
-const (
-	APP_NAME    = "Polish"
-	APP_VERSION = "0.1.0"
-	APP_STRING  = "Polish © jpl@ozf.fr 2024"
-	APP_URL     = "https://github.com/jplozf/polish"
-	APP_FOLDER  = ".polish"
-	FSTACK_FILE = "fstack.gob"
-	ASTACK_FILE = "astack.gob"
-	VARS_FILE   = "vars.gob"
-)
-
-// *****************************************************************************
-// VARS
-// *****************************************************************************
-var (
-	ICON_DISK  = "⛁"
-	ICON_ARROW = "⯈"
-	BUILD_TIME = "NULL"
-	GIT_COMMIT = "NULL"
-)
+var Vars map[string]any
 
 // *****************************************************************************
 // init()
 // *****************************************************************************
 func init() {
-	if runtime.GOOS == "windows" || runtime.GOOS == "android" {
-		// These UTF8 icons are not correctly rendered in Windows or Android's Termux,
-		// so we convert them to plain vanilla ASCII characters
-		ICON_DISK = "#"
-		ICON_ARROW = ">"
-	}
+	Vars = make(map[string]any)
+}
+
+// *****************************************************************************
+// Sto()
+// *****************************************************************************
+func Sto(n string, v any) {
+	Vars[n] = v
+}
+
+// *****************************************************************************
+// Rcl()
+// *****************************************************************************
+func Rcl(n string) any {
+	return Vars[n]
 }

@@ -44,7 +44,7 @@ var (
 func init() {
 	if runtime.GOOS == "windows" || runtime.GOOS == "android" {
 		// These UTF8 icons are not correctly rendered in Windows or Android's Termux,
-		// so we convert them to plain vanilla ASCII characters
+		// so we convert them to plain vanilla ASCII (ugly) characters
 		ICON_DISK = "#"
 		ICON_ARROW = ">"
 	}

@@ -72,6 +72,7 @@
 | .a
 | .f
 | .v
+| ftoa
 | cbrt
 | ceil
 | cos | ( n1 -- n2 ) | n2 is the cosine of the radian angle n1 |

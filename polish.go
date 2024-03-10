@@ -214,6 +214,8 @@ func xeq(cmd string) {
 						doALeft()
 					case "amid":
 						doAMid()
+					case "ftoa":
+						doFtoa()
 					case "rcl":
 						doRcl()
 					case "sto":
@@ -681,6 +683,20 @@ func showVars() {
 			}
 		case string:
 			fmt.Printf("[VAR_A] %16s : %s\n", key, value)
+		}
+	}
+}
+
+// *****************************************************************************
+// doFtoa()
+// *****************************************************************************
+func doFtoa() {
+	if checkFStack(1) {
+		f, _ := fs.Pop()
+		if math.Log10(math.Abs(f)) > 12 {
+			as.Push(fmt.Sprintf("%E", f))
+		} else {
+			as.Push(fmt.Sprintf("%f", f))
 		}
 	}
 }

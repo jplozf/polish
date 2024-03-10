@@ -17,7 +17,7 @@
 
 ## Features
 
-* Algebrical functions
+* Algebraic functions
     - add, substract, multiply and divide
     - power, logarithms, exponential and factorial
 * Trigonometric functions
@@ -28,6 +28,54 @@
 * Alpha (strings) stack and related functions
 * Stack manipulations
 * Stay tuned, more to come...
+
+### [Reverse Polish Notation](https://en.wikipedia.org/wiki/Reverse_Polish_notation) *(taken from Wikipedia)*
+
+Reverse Polish notation (RPN), also known as reverse Łukasiewicz notation, Polish postfix notation or simply postfix notation, is a mathematical notation in which operators follow their operands, in contrast to prefix or Polish notation (PN), in which operators precede their operands. The notation does not need any parentheses for as long as each operator has a fixed number of operands.
+
+The term postfix notation describes the general scheme in mathematics and computer sciences, whereas the term reverse Polish notation typically refers specifically to the method used to enter calculations into hardware or software calculators, which often have additional side effects and implications depending on the actual implementation involving a stack. The description "Polish" refers to the nationality of logician **Jan Łukasiewicz**, who invented Polish notation in 1924.
+
+In reverse Polish notation, the operators follow their operands. For example, to add **3** and **4** together, the expression is :
+```
+3 4 + 
+```
+rather than **3 + 4**.
+
+The conventional notation expression **3 − 4 + 5** becomes :
+```
+3 4 − 5 + 
+```
+in reverse Polish notation: **4** is first subtracted from **3**, then **5** is added to it.
+
+The concept of a stack, a last-in/first-out construct, is integral to the left-to-right evaluation of RPN. In the example **3 4 −**, first the **3** is put onto the stack, then the **4**; the **4** is now on top and the **3** below it. The subtraction operator removes the top two items from the stack, performs **3 − 4**, and puts the result of **−1** onto the stack.
+
+The common terminology is that added items are pushed on the stack and removed items are popped.
+
+The advantage of reverse Polish notation is that it removes the need for order of operations and parentheses that are required by infix notation and can be evaluated linearly, left-to-right.
+
+For example, the infix expression **(3 × 4) + (5 × 6)** becomes :
+```
+3 4 × 5 6 × +
+```
+in reverse Polish notation.
+
+### Alphabetical stack
+* Alpha strings are entered beween double quotes
+``` 
+    "hello" "everybody" +as
+``` 
+* If only one alpha string is entered on command line, the last quote could be omitted
+``` 
+    "bye
+``` 
+  
+### Variables
+* Variables names are introduced by the prefix $
+``` 
+    $foo 5 sto
+    $foo rcl
+``` 
+
 
 ## Algebraic Functions
 | Function | Stack | Feature |
@@ -49,7 +97,7 @@
 | log | ( f1 -- f2 ) | f2 is the natural logarithm of f1 |
 | log10 | ( f1 -- f2 ) | f2 is the decimal logarithm of f1 |
 | log2 | ( f1 -- f2 ) | f2 is the binary logarithm of f1 |
-| rnd | ( -- f ) | f is a random value between 0 and 1 |
+| rnd | ( -- f ) | f is a pseudo-random number in the half-open interval [0.0,1.0) |
 | round | ( f1 -- f2 ) | f2 is the nearest integer of f1, rounding half away from zero |
 | sqr
 | sqrt

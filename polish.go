@@ -220,6 +220,8 @@ func xeq(cmd string) {
 						doSto()
 					case "asto":
 						doASto()
+					case "del":
+						doDel()
 					default:
 						raiseError(UNRECOGNIZED_COMMAND)
 					}
@@ -604,6 +606,24 @@ func doRcl() {
 			}
 			varName = ""
 		} else {
+			raiseError(NONEXISTENT_VARIABLE)
+		}
+	} else {
+		raiseError(MISSING_VARIABLE)
+	}
+}
+
+// *****************************************************************************
+// doDel()
+// *****************************************************************************
+func doDel() {
+	if varName != "" {
+		v := sto.Vars[varName]
+		if v != nil {
+			delete(sto.Vars, varName)
+			varName = ""
+		} else {
+			varName = ""
 			raiseError(NONEXISTENT_VARIABLE)
 		}
 	} else {

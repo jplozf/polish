@@ -42,7 +42,7 @@ func (e Error) String() string {
 		"Not enough arguments on float stack",
 		"Not enough arguments on alpha stack",
 		"Alpha extract out of bounds",
-		"Nonexistent variable name",
+		"Nonexistent variable",
 		"Missing variable name",
 	}[e]
 }

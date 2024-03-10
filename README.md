@@ -68,6 +68,7 @@
 | rcl
 | sto
 | asto
+| del 
 | .a
 | .f
 | .v

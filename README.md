@@ -33,15 +33,17 @@
 
 Reverse Polish notation (RPN), also known as reverse Łukasiewicz notation, Polish postfix notation or simply postfix notation, is a mathematical notation in which operators follow their operands, in contrast to prefix or Polish notation (PN), in which operators precede their operands. The notation does not need any parentheses for as long as each operator has a fixed number of operands.
 
+### Numerical stack
+
 The term postfix notation describes the general scheme in mathematics and computer sciences, whereas the term reverse Polish notation typically refers specifically to the method used to enter calculations into hardware or software calculators, which often have additional side effects and implications depending on the actual implementation involving a stack. The description "Polish" refers to the nationality of logician **Jan Łukasiewicz**, who invented Polish notation in 1924.
 
-In reverse Polish notation, the operators follow their operands. For example, to add **3** and **4** together, the expression is :
+* In reverse Polish notation, the operators follow their operands. For example, to add **3** and **4** together, the expression is :
 ```
 3 4 + 
 ```
 rather than **3 + 4**.
 
-The conventional notation expression **3 − 4 + 5** becomes :
+* The conventional notation expression **3 − 4 + 5** becomes :
 ```
 3 4 − 5 + 
 ```
@@ -53,13 +55,16 @@ The common terminology is that added items are pushed on the stack and removed i
 
 The advantage of reverse Polish notation is that it removes the need for order of operations and parentheses that are required by infix notation and can be evaluated linearly, left-to-right.
 
-For example, the infix expression **(3 × 4) + (5 × 6)** becomes :
+* For example, the infix expression **(3 × 4) + (5 × 6)** becomes :
 ```
 3 4 × 5 6 × +
 ```
 in reverse Polish notation.
 
 ### Alphabetical stack
+
+In addition to the float numbers stack, there is also an alphabetical strings stack.
+
 * Alpha strings are entered beween double quotes
 ``` 
     "hello" "everybody" +as
@@ -70,12 +75,18 @@ in reverse Polish notation.
 ``` 
   
 ### Variables
+
+Finally, data, whether numeric or alphabetical, can also be stored in named variables.
+
 * Variables names are introduced by the prefix $
 ``` 
     $foo 5 sto
     $foo rcl
 ``` 
 
+### Serialization
+
+The floating point stack, alpha string stack, and variables are serialized to disk when the program exits. This data will be automatically restored the next time you open the interface.
 
 ## Algebraic Functions
 | Function | Stack | Feature |

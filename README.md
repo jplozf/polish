@@ -39,13 +39,13 @@ The term postfix notation describes the general scheme in mathematics and comput
 
 * In reverse Polish notation, the operators follow their operands. For example, to add **3** and **4** together, the expression is :
 ```
-3 4 + 
+    ⯈ 3 4 + 
 ```
 rather than **3 + 4**.
 
 * The conventional notation expression **3 − 4 + 5** becomes :
 ```
-3 4 − 5 + 
+    ⯈ 3 4 − 5 + 
 ```
 in reverse Polish notation: **4** is first subtracted from **3**, then **5** is added to it.
 
@@ -57,7 +57,7 @@ The advantage of reverse Polish notation is that it removes the need for order o
 
 * For example, the infix expression **(3 × 4) + (5 × 6)** becomes :
 ```
-3 4 × 5 6 × +
+    ⯈ 3 4 × 5 6 × +
 ```
 in reverse Polish notation.
 
@@ -67,11 +67,11 @@ In addition to the float numbers stack, there is also an alphabetical strings st
 
 * Alpha strings are entered beween double quotes
 ``` 
-    "hello" "everybody" +as
+    ⯈ "hello" "everybody" +as
 ``` 
 * If only one alpha string is entered on command line, the last quote could be omitted
 ``` 
-    "bye
+    ⯈ "bye
 ``` 
   
 ### Variables
@@ -80,8 +80,8 @@ Finally, data, whether numeric or alphabetical, can also be stored in named vari
 
 * Variables names are introduced by the prefix $
 ``` 
-    $foo 5 sto
-    $foo rcl
+    ⯈ $foo 5 sto
+    ⯈ $foo rcl
 ``` 
 
 ### Serialization

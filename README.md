@@ -67,7 +67,7 @@ In addition to the float numbers stack, there is also an alphabetical strings st
 
 * Alpha strings are entered beween double quotes
 ``` 
-    ⯈ "hello" "everybody" +as
+    ⯈ "hello" "world" +as
 ``` 
 * If only one alpha string is entered on command line, the last quote could be omitted
 ``` 
@@ -84,7 +84,7 @@ Finally, data, whether numeric or alphabetical, can also be stored in named vari
     ⯈ $foo rcl
 ``` 
 
-### Serialization
+### Data permanence
 
 The floating point stack, alpha string stack, and variables are serialized to disk when the program exits. This data will be automatically restored the next time you open the interface.
 
@@ -195,6 +195,6 @@ The floating point stack, alpha string stack, and variables are serialized to di
 ## Constants
 | Constant | Value | Feature |
 |:--------:|-------|---------|
-| pi | 3.1415926535897932384626 | &pi;  = Ratio of a circle's circumference to its diameter |
-| e | 2.7182818284590452353602 | e = Euler's constant |
 | phi | 1.6180339887498948482045 | &phi; = Golden ratio |
+| e | 2.7182818284590452353602 | e = Euler's constant |
+| pi | 3.1415926535897932384626 | &pi;  = Ratio of a circle's circumference to its diameter |

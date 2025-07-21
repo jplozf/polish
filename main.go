@@ -2231,6 +2231,7 @@ func updateVariablesView(variablesTable *tview.Table, variables map[string]inter
 		}
 		row++
 	}
+	variablesTable.SetTitle(fmt.Sprintf("Variables (%d)", len(keys)))
 	variablesTable.ScrollToBeginning()
 }
 

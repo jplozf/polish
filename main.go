@@ -22,6 +22,65 @@ import (
 var ErrBreak = fmt.Errorf("break")
 var ErrContinue = fmt.Errorf("continue")
 
+// Error represents a custom error with a code and message.
+type Error struct {
+	Code    int
+	Message string
+}
+
+// Predefined errors
+var errors = []Error{
+	{Code: 1, Message: "stack underflow"},
+	{Code: 2, Message: "division by zero"},
+	{Code: 3, Message: "type error: expected a number, got %T"},
+	{Code: 4, Message: "type error: expected a boolean, got %T"},
+	{Code: 5, Message: "type error: expected a string, got %T"},
+	{Code: 6, Message: "type error: expected a code block, got %T"},
+	{Code: 7, Message: "type error: '+' requires two numbers or two strings, got %T and %T"},
+	{Code: 8, Message: "type error: '+' requires two numbers or two strings, got %T"},
+	{Code: 9, Message: "invalid arguments for if"},
+	{Code: 10, Message: "index: not inside a loop"},
+	{Code: 11, Message: "variable name '%s' conflicts with an existing command"},
+	{Code: 12, Message: "variable names starting with '_' are reserved for internal use: %s"},
+	{Code: 13, Message: "internal variable %s can only be set to a boolean value"},
+	{Code: 14, Message: "cannot modify internal variable: %s"},
+	{Code: 15, Message: "undefined variable: %s"},
+	{Code: 16, Message: "invalid function definition"},
+	{Code: 17, Message: "word names starting with '_' are reserved for internal use: %s"},
+	{Code: 18, Message: "word name '%s' conflicts with an existing command"},
+	{Code: 19, Message: "delete: missing variable or word name"},
+	{Code: 20, Message: "cannot delete internal variable or word: %s"},
+	{Code: 21, Message: "undefined variable or word: %s"},
+	{Code: 22, Message: "undefined %s: %s"},
+	{Code: 23, Message: "see: missing variable or word name"},
+	{Code: 24, Message: "edit: missing name"},
+	{Code: 25, Message: "edit: undefined word or variable: %s"},
+	{Code: 26, Message: "edit: word '%s' not found"},
+	{Code: 27, Message: "edit: variable '%s' is not a code block"},
+	{Code: 28, Message: "edit: variable '%s' not found"},
+	{Code: 29, Message: "error executing '%s': %w"},
+	{Code: 30, Message: "undefined word: %s"},
+	{Code: 31, Message: "error executing word '%s': %w"},
+	{Code: 32, Message: "variable '%s' contains non-string elements in block"},
+	{Code: 33, Message: "error executing variable as word '%s': %w"},
+	{Code: 34, Message: "unrecognized token: %s"},
+	{Code: 35, Message: "unmatched ')'"},
+	{Code: 36, Message: `unmatched "`},
+	{Code: 37, Message: "unmatched '('"},
+	{Code: 38, Message: "expected '{' to start block"},
+	{Code: 39, Message: "unmatched '{'"},
+	{Code: 40, Message: "failed to get home directory: %w"},
+	{Code: 41, Message: "failed to create .rpn directory: %w"},
+	{Code: 42, Message: "failed to marshal interpreter state: %w"},
+	{Code: 43, Message: "failed to write state to file %s: %w"},
+	{Code: 44, Message: "failed to read state from file %s: %w"},
+	{Code: 45, Message: "failed to unmarshal interpreter state: %w"},
+	{Code: 46, Message: "failed to read RPN file %s: %w"},
+	{Code: 47, Message: "failed to open file %s for export: %w"},
+	{Code: 48, Message: "failed to read RPN directory %s: %w"},
+	{Code: 49, Message: "while: condition must evaluate to a boolean or number, got %T"},
+}
+
 // History variables
 var history []string
 var historyIndex int = -1
@@ -100,6 +159,17 @@ type Interpreter struct {
 	loopIndex        float64           // New field to store current loop index
 }
 
+// newError creates a new error with a code and formatted message.
+func (i *Interpreter) newError(code int, args ...interface{}) error {
+	for _, e := range errors {
+		if e.Code == code {
+			i.variables["_last_error"] = float64(code)
+			return fmt.Errorf(fmt.Sprintf("error %d: %s", e.Code, e.Message), args...)
+		}
+	}
+	return fmt.Errorf("unknown error code: %d", code)
+}
+
 // InterpreterState represents the savable state of the interpreter.
 type InterpreterState struct {
 	Stack     []interface{}          `json:"stack"`
@@ -111,11 +181,11 @@ type InterpreterState struct {
 func (i *Interpreter) saveState(filename string) error {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return fmt.Errorf("failed to get home directory: %w", err)
+		return i.newError(40, err)
 	}
 	rpnPath := filepath.Join(home, rpnDir)
 	if err := os.MkdirAll(rpnPath, 0755); err != nil {
-		return fmt.Errorf("failed to create .rpn directory: %w", err)
+		return i.newError(41, err)
 	}
 	fullPath := filepath.Join(rpnPath, filename)
 
@@ -127,12 +197,12 @@ func (i *Interpreter) saveState(filename string) error {
 
 	data, err := json.MarshalIndent(state, "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to marshal interpreter state: %w", err)
+		return i.newError(42, err)
 	}
 
 	err = ioutil.WriteFile(fullPath, data, 0644)
 	if err != nil {
-		return fmt.Errorf("failed to write state to file %s: %w", fullPath, err)
+		return i.newError(43, fullPath, err)
 	}
 	return nil
 }
@@ -154,20 +224,20 @@ func updateAngleAndEchoModeView(i *Interpreter) {
 func (i *Interpreter) loadState(filename string) error {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return fmt.Errorf("failed to get home directory: %w", err)
+		return i.newError(40, err)
 	}
 	rpnPath := filepath.Join(home, rpnDir)
 	fullPath := filepath.Join(rpnPath, filename)
 
 	data, err := ioutil.ReadFile(fullPath)
 	if err != nil {
-		return fmt.Errorf("failed to read state from file %s: %w", fullPath, err)
+		return i.newError(44, fullPath, err)
 	}
 
 	var state InterpreterState
 	err = json.Unmarshal(data, &state)
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal interpreter state: %w", err)
+		return i.newError(45, err)
 	}
 
 	i.stack = state.Stack
@@ -222,8 +292,9 @@ func NewInterpreter(outputView *tview.TextView, angleModeView *tview.TextView, v
 	interp.variables["_degree_mode"] = false
 	interp.variables["_vars_value"] = true
 	interp.variables["_stack_type"] = false
-	interp.variables["_hidden_vars"] = true
+	interp.variables["_hidden_vars"] = false
 	interp.variables["_exit_save"] = false
+	interp.variables["_last_error"] = float64(0)
 	interp.loopIndex = -1 // Initialize loop index to -1 (no active loop)
 	interp.registerOpcodes()
 	return interp
@@ -237,7 +308,7 @@ func (i *Interpreter) push(v interface{}) {
 // pop removes and returns a value from the stack.
 func (i *Interpreter) pop() (interface{}, error) {
 	if len(i.stack) == 0 {
-		return 0, fmt.Errorf("stack underflow")
+		return 0, i.newError(1)
 	}
 	val := i.stack[len(i.stack)-1]
 	i.stack = i.stack[:len(i.stack)-1]
@@ -259,7 +330,7 @@ func (i *Interpreter) popFloat() (float64, error) {
 			}
 			return 0.0, nil
 		}
-		return 0, fmt.Errorf("type error: expected a number, got %T", val)
+		return 0, i.newError(3, val)
 	}
 	return f, nil
 }
@@ -276,7 +347,7 @@ func (i *Interpreter) popBool() (bool, error) {
 		if f, ok := val.(float64); ok {
 			return f != 0, nil
 		}
-		return false, fmt.Errorf("type error: expected a boolean, got %T", val)
+		return false, i.newError(4, val)
 	}
 	return b, nil
 }
@@ -289,7 +360,7 @@ func (i *Interpreter) popString() (string, error) {
 	}
 	s, ok := val.(string)
 	if !ok {
-		return "", fmt.Errorf("type error: expected a string, got %T", val)
+		return "", i.newError(5, val)
 	}
 	return s, nil
 }
@@ -302,7 +373,7 @@ func (i *Interpreter) popBlock() ([]string, error) {
 	}
 	block, ok := val.([]string)
 	if !ok {
-		return nil, fmt.Errorf("type error: expected a code block, got %T", val)
+		return nil, i.newError(6, val)
 	}
 	return block, nil
 }
@@ -318,23 +389,23 @@ func (i *Interpreter) registerOpcodes() {
 		a, err := i.pop()
 		if err != nil {
 			return err
-		}
+	}
 
 		switch aVal := a.(type) {
 		case float64:
 			if bVal, ok := b.(float64); ok {
 				i.push(aVal + bVal)
 			} else {
-				return fmt.Errorf("type error: '+' requires two numbers or two strings, got %T and %T", a, b)
+				return i.newError(7, a, b)
 			}
 		case string:
 			if bVal, ok := b.(string); ok {
 				i.push(aVal + bVal)
 			} else {
-				return fmt.Errorf("type error: '+' requires two numbers or two strings, got %T and %T", a, b)
+				return i.newError(7, a, b)
 			}
 		default:
-			return fmt.Errorf("type error: '+' requires two numbers or two strings, got %T", a)
+			return i.newError(8, a)
 		}
 		return nil
 	}
@@ -372,7 +443,7 @@ func (i *Interpreter) registerOpcodes() {
 			return err
 		}
 		if b == 0 {
-			return fmt.Errorf("division by zero")
+			return i.newError(2)
 		}
 		i.push(a / b)
 		return nil
@@ -755,7 +826,7 @@ func (i *Interpreter) registerOpcodes() {
 			}
 			return nil // no else block, do nothing
 		} else {
-			return fmt.Errorf("invalid arguments for if")
+			return i.newError(9)
 		}
 	}
 	i.opcodes["loop"] = func(i *Interpreter) error {
@@ -813,7 +884,7 @@ func (i *Interpreter) registerOpcodes() {
 			case float64:
 				condition = v != 0
 			default:
-				return fmt.Errorf("while: condition must evaluate to a boolean or number, got %T", condResult)
+				return i.newError(49, condResult)
 			}
 
 			if !condition {
@@ -845,7 +916,7 @@ func (i *Interpreter) registerOpcodes() {
 	// Loop index
 	i.opcodes["index"] = func(i *Interpreter) error {
 		if i.loopIndex == -1 {
-			return fmt.Errorf("index: not inside a loop")
+			return i.newError(10)
 		}
 		i.push(i.loopIndex)
 		return nil
@@ -864,24 +935,24 @@ func (i *Interpreter) registerOpcodes() {
 
 		// Prevent defining variables with the same name as an opcode
 		if _, exists := i.opcodes[name]; exists {
-			return fmt.Errorf("variable name '%s' conflicts with an existing command", name)
+			return i.newError(11, name)
 		}
 
 		// Handle internal variables (names starting with '_')
 		if strings.HasPrefix(name, "_") {
 			// Check if it's an attempt to create a *new* internal variable
 			if _, exists := i.variables[name]; !exists {
-				return fmt.Errorf("variable names starting with '_' are reserved for internal use: %s", name)
+				return i.newError(12, name)
 			}
 
 			// If it's an *existing* internal variable, apply type protection
 			switch name {
 			case "_echo_mode", "_degree_mode", "_vars_value", "_stack_type", "_hidden_vars", "_exit_save":
 				if _, ok := val.(bool); !ok {
-					return fmt.Errorf("internal variable %s can only be set to a boolean value", name)
+					return i.newError(13, name)
 				}
 			default:
-				return fmt.Errorf("cannot modify internal variable: %s", name)
+				return i.newError(14, name)
 			}
 		}
 
@@ -895,7 +966,7 @@ func (i *Interpreter) registerOpcodes() {
 		}
 		val, ok := i.variables[name]
 		if !ok {
-			return fmt.Errorf("undefined variable: %s", name)
+			return i.newError(15, name)
 			}
 		i.push(val)
 		return nil
@@ -978,14 +1049,14 @@ func (i *Interpreter) registerOpcodes() {
 		}
 		home, err := os.UserHomeDir()
 		if err != nil {
-			return fmt.Errorf("failed to get home directory: %w", err)
+			return i.newError(40, err)
 		}
 		rpnPath := filepath.Join(home, rpnDir)
 		fullPath := filepath.Join(rpnPath, filename)
 
 		content, err := ioutil.ReadFile(fullPath)
 		if err != nil {
-			return fmt.Errorf("failed to read RPN file %s: %w", fullPath, err)
+			return i.newError(46, fullPath, err)
 		}
 
 		return i.Eval(string(content))
@@ -1003,11 +1074,11 @@ func (i *Interpreter) registerOpcodes() {
 
 		wordDef, ok := i.words[wordName]
 		if !ok {
-			return fmt.Errorf("undefined word: %s", wordName)
+			return i.newError(30, wordName)
 		}
 
 		if strings.HasPrefix(wordName, "_") {
-			return fmt.Errorf("cannot export internal word: %s", wordName)
+			return i.newError(17, wordName)
 		}
 
 		if !strings.HasSuffix(filename, ".rpn") {
@@ -1016,17 +1087,17 @@ func (i *Interpreter) registerOpcodes() {
 
 		home, err := os.UserHomeDir()
 		if err != nil {
-			return fmt.Errorf("failed to get home directory: %w", err)
+			return i.newError(40, err)
 		}
 		rpnPath := filepath.Join(home, rpnDir)
 		if err := os.MkdirAll(rpnPath, 0755); err != nil {
-			return fmt.Errorf("failed to create .rpn directory: %w", err)
+			return i.newError(41, err)
 		}
 		fullPath := filepath.Join(rpnPath, filename)
 
 		file, err := os.OpenFile(fullPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			return fmt.Errorf("failed to open file %s for export: %w", fullPath, err)
+			return i.newError(47, fullPath, err)
 		}
 		defer file.Close()
 
@@ -1044,13 +1115,13 @@ func (i *Interpreter) registerOpcodes() {
 	i.opcodes["list"] = func(i *Interpreter) error {
 		home, err := os.UserHomeDir()
 		if err != nil {
-			return fmt.Errorf("failed to get home directory: %w", err)
+			return i.newError(40, err)
 		}
 		rpnPath := filepath.Join(home, rpnDir)
 
 		files, err := ioutil.ReadDir(rpnPath)
 		if err != nil {
-			return fmt.Errorf("failed to read RPN directory %s: %w", rpnPath, err)
+			return i.newError(48, rpnPath, err)
 		}
 
 		fmt.Fprintln(i.outputView, "RPN files in ~/.polish:")
@@ -1211,7 +1282,7 @@ func (i *Interpreter) registerOpcodes() {
 		if err != nil {
 			return err
 		}
-		a, err := i.popBool()
+	a, err := i.popBool()
 		if err != nil {
 			return err
 		}
@@ -1227,14 +1298,14 @@ func (i *Interpreter) registerOpcodes() {
 
 		// Prevent defining variables with the same name as an opcode
 		if _, exists := i.opcodes[name]; exists {
-			return fmt.Errorf("variable name '%s' conflicts with an existing command", name)
+			return i.newError(11, name)
 		}
 
 		// Handle internal variables (names starting with '_')
 		if strings.HasPrefix(name, "_") {
 			// Check if it's an attempt to create a *new* internal variable
 			if _, exists := i.variables[name]; !exists {
-				return fmt.Errorf("variable names starting with '_' are reserved for internal use: %s", name)
+				return i.newError(12, name)
 			}
 
 			// If it's an *existing* internal variable, apply type protection
@@ -1242,7 +1313,7 @@ func (i *Interpreter) registerOpcodes() {
 			case "_echo_mode", "_degree_mode", "_vars_value", "_stack_type", "_hidden_vars", "_exit_save":
 				// These are boolean flags, so allow setting them to true
 			default:
-				return fmt.Errorf("cannot modify internal variable: %s", name)
+				return i.newError(14, name)
 			}
 		}
 
@@ -1258,14 +1329,14 @@ func (i *Interpreter) registerOpcodes() {
 
 		// Prevent defining variables with the same name as an opcode
 		if _, exists := i.opcodes[name]; exists {
-			return fmt.Errorf("variable name '%s' conflicts with an existing command", name)
+			return i.newError(11, name)
 		}
 
 		// Handle internal variables (names starting with '_')
 		if strings.HasPrefix(name, "_") {
 			// Check if it's an attempt to create a *new* internal variable
 			if _, exists := i.variables[name]; !exists {
-				return fmt.Errorf("variable names starting with '_' are reserved for internal use: %s", name)
+				return i.newError(12, name)
 			}
 
 			// If it's an *existing* internal variable, apply type protection
@@ -1273,7 +1344,7 @@ func (i *Interpreter) registerOpcodes() {
 			case "_echo_mode", "_degree_mode", "_vars_value", "_stack_type", "_hidden_vars", "_exit_save":
 				// These are boolean flags, so allow setting them to false
 			default:
-				return fmt.Errorf("cannot modify internal variable: %s", name)
+				return i.newError(14, name)
 			}
 		}
 
@@ -1289,17 +1360,17 @@ func (i *Interpreter) registerOpcodes() {
 
 		// Prevent toggling variables with the same name as an opcode
 		if _, exists := i.opcodes[name]; exists {
-			return fmt.Errorf("variable name '%s' conflicts with an existing command", name)
+			return i.newError(11, name)
 		}
 
 		val, ok := i.variables[name]
 		if !ok {
-			return fmt.Errorf("undefined variable: %s", name)
+			return i.newError(15, name)
 		}
 
 		b, isBool := val.(bool)
 		if !isBool {
-			return fmt.Errorf("variable %s is not a boolean", name)
+			return i.newError(4, val)
 		}
 
 		// Handle internal variables (names starting with '_')
@@ -1309,7 +1380,7 @@ func (i *Interpreter) registerOpcodes() {
 			case "_echo_mode", "_degree_mode", "_vars_value", "_stack_type", "_hidden_vars", "_exit_save":
 				// These are boolean flags, so allow toggling them
 			default:
-				return fmt.Errorf("cannot modify internal variable: %s", name)
+				return i.newError(14, name)
 			}
 		}
 
@@ -1318,7 +1389,7 @@ func (i *Interpreter) registerOpcodes() {
 	}
 
 	// String case conversion
-	i.opcodes["to_upper"] = func(i *Interpreter) error {
+	i.opcodes["upper"] = func(i *Interpreter) error {
 		s, err := i.popString()
 		if err != nil {
 			return err
@@ -1326,7 +1397,7 @@ func (i *Interpreter) registerOpcodes() {
 		i.push(strings.ToUpper(s))
 		return nil
 	}
-	i.opcodes["to_lower"] = func(i *Interpreter) error {
+	i.opcodes["lower"] = func(i *Interpreter) error {
 		s, err := i.popString()
 		if err != nil {
 			return err
@@ -1348,7 +1419,7 @@ func (i *Interpreter) registerOpcodes() {
 		fmt.Fprintln(i.outputView, "  store, load, edit, free: Variable storage (can store and execute code blocks)")
 		fmt.Fprintln(i.outputView, "  see [var:|word:]<name>: See the definition of a variable/word")
 		fmt.Fprintln(i.outputView, "  delete [var:|word:]<name>: Delete a variable/word (e.g. delete myvar)")
-		fmt.Fprintln(i.outputView, "  strlen, substr, to_upper, to_lower: String manipulation")
+		fmt.Fprintln(i.outputView, "  strlen, substr, upper, lower: String manipulation")
 		fmt.Fprintln(i.outputView, "  ., print, cr, cls: Output")
 		fmt.Fprintln(i.outputView, "  save, restore, import, export, list: State management")
 		fmt.Fprintln(i.outputView, "  time, date, year, month, day, hour, minute, second: Time and date functions")
@@ -1384,18 +1455,18 @@ func (i *Interpreter) execute(tokens []string) error {
 		// Handle function definition
 		if token == ":" {
 			if len(tokens) < j+3 {
-				return fmt.Errorf("invalid function definition")
+				return i.newError(16)
 			}
 			wordName := tokens[j+1]
 
 			// Prevent defining words starting with "_"
 			if strings.HasPrefix(wordName, "_") {
-				return fmt.Errorf("word names starting with '_' are reserved for internal use: %s", wordName)
+				return i.newError(17, wordName)
 			}
 
 			// Prevent defining words with the same name as an opcode
 			if _, exists := i.opcodes[wordName]; exists {
-				return fmt.Errorf("word name '%s' conflicts with an existing command", wordName)
+				return i.newError(18, wordName)
 			}
 
 			var wordDef []string
@@ -1413,7 +1484,7 @@ func (i *Interpreter) execute(tokens []string) error {
 
 		// Handle code blocks for control flow
 		if token == "{" {
-			block, end, err := parseBlock(tokens, j)
+			block, end, err := i.parseBlock(tokens, j)
 			if err != nil {
 				return err
 			}
@@ -1425,7 +1496,7 @@ func (i *Interpreter) execute(tokens []string) error {
 		// Handle delete command
 		if token == "delete" {
 			if len(tokens) < j+2 {
-				return fmt.Errorf("delete: missing variable or word name")
+				return i.newError(19)
 			}
 			name := tokens[j+1]
 			
@@ -1444,7 +1515,7 @@ func (i *Interpreter) execute(tokens []string) error {
 			}
 
 			if strings.HasPrefix(targetName, "_") {
-				return fmt.Errorf("cannot delete internal variable or word: %s", targetName)
+				return i.newError(20, targetName)
 			}
 
 			deleted := false
@@ -1474,9 +1545,9 @@ func (i *Interpreter) execute(tokens []string) error {
 
 			if !deleted {
 				if targetType == "any" {
-					return fmt.Errorf("undefined variable or word: %s", name)
+					return i.newError(21, name)
 				}
-				return fmt.Errorf("undefined %s: %s", targetType, targetName)
+				return i.newError(22, targetType, targetName)
 			}
 			j++ // consume the name token
 			continue
@@ -1485,7 +1556,7 @@ func (i *Interpreter) execute(tokens []string) error {
 		// Handle see command
 		if token == "see" {
 			if len(tokens) < j+2 {
-				return fmt.Errorf("see: missing variable or word name")
+				return i.newError(23)
 			}
 			name := tokens[j+1]
 
@@ -1506,7 +1577,7 @@ func (i *Interpreter) execute(tokens []string) error {
 			found := false
 			if targetType == "word" || targetType == "any" {
 				if wordDef, ok := i.words[targetName]; ok {
-										fmt.Fprintln(i.outputView, formatWord(targetName, wordDef))
+								fmt.Fprintln(i.outputView, formatWord(targetName, wordDef))
 					found = true
 				}
 			}
@@ -1533,9 +1604,9 @@ func (i *Interpreter) execute(tokens []string) error {
 
 			if !found {
 				if targetType == "any" {
-					return fmt.Errorf("undefined variable or word: %s", name)
+					return i.newError(21, name)
 				}
-				return fmt.Errorf("undefined %s: %s", targetType, targetName)
+				return i.newError(22, targetType, targetName)
 			}
 			j++ // consume the name token
 			continue
@@ -1544,7 +1615,7 @@ func (i *Interpreter) execute(tokens []string) error {
 		// Handle edit command
 		if token == "edit" {
 			if len(tokens) < j+2 {
-				return fmt.Errorf("edit: missing name")
+				return i.newError(24)
 			}
 			name := tokens[j+1]
 			// If the name is a quoted string, unquote it
@@ -1567,7 +1638,7 @@ func (i *Interpreter) execute(tokens []string) error {
 				} else if _, ok := i.variables[name]; ok {
 					targetType = "variable"
 				} else {
-					return fmt.Errorf("edit: undefined word or variable: %s", name)
+					return i.newError(25, name)
 				}
 			}
 
@@ -1576,7 +1647,7 @@ func (i *Interpreter) execute(tokens []string) error {
 				if wordDef, ok := i.words[name]; ok {
 					editString = ": " + name + " " + strings.Join(wordDef, " ") + " ;"
 				} else {
-					return fmt.Errorf("edit: word '%s' not found", name)
+					return i.newError(26, name)
 				}
 			case "variable":
 				if varVal, ok := i.variables[name]; ok {
@@ -1594,10 +1665,10 @@ func (i *Interpreter) execute(tokens []string) error {
 						}
 						editString = "{ " + strings.Join(convertedBlock, " ") + " } \"" + name + "\" store"
 					} else {
-						return fmt.Errorf("edit: variable '%s' is not a code block", name)
+						return i.newError(27, name)
 					}
 				} else {
-					return fmt.Errorf("edit: variable '%s' not found", name)
+					return i.newError(28, name)
 				}
 			}
 
@@ -1612,23 +1683,23 @@ func (i *Interpreter) execute(tokens []string) error {
 				if err == ErrBreak || err == ErrContinue {
 					return err
 				}
-				return fmt.Errorf("error executing '%s': %w", token, err)
+				return i.newError(29, token, err)
 			}
 		} else if strings.HasPrefix(token, "word:") { // Explicitly execute a word
 			wordName := strings.TrimPrefix(token, "word:")
 			if wordDef, exists := i.words[wordName]; exists {
 				if err := i.execute(wordDef); err != nil {
-					return fmt.Errorf("error executing word '%s': %w", wordName, err)
+					return i.newError(31, wordName, err)
 				}
 			} else {
-				return fmt.Errorf("undefined word: %s", wordName)
+				return i.newError(30, wordName)
 			}
 		} else if strings.HasPrefix(token, "var:") { // Explicitly execute a variable (as a code block) or push its value
 			varName := strings.TrimPrefix(token, "var:")
 			if val, exists := i.variables[varName]; exists {
 				if blockStr, ok := val.([]string); ok {
 					if err := i.execute(blockStr); err != nil {
-						return fmt.Errorf("error executing variable as word '%s': %w", varName, err)
+						return i.newError(33, varName, err)
 					}
 				} else if blockIface, ok := val.([]interface{}); ok {
 					convertedBlock := make([]string, len(blockIface))
@@ -1636,27 +1707,27 @@ func (i *Interpreter) execute(tokens []string) error {
 						if s, isString := v.(string); isString {
 							convertedBlock[k] = s
 						} else {
-							return fmt.Errorf("variable '%s' contains non-string elements in block", varName)
+							return i.newError(32, varName)
 						}
 					}
 					if err := i.execute(convertedBlock); err != nil {
-						return fmt.Errorf("error executing variable as word '%s': %w", varName, err)
+						return i.newError(33, varName, err)
 					}
 				} else {
 					i.push(val) // Push the variable's value if not a code block
 				}
 			} else {
-				return fmt.Errorf("undefined variable: %s", varName)
+				return i.newError(15, varName)
 			}
 		} else if wordDef, exists := i.words[token]; exists { // Check for user-defined words (default)
 			if err := i.execute(wordDef); err != nil {
-				return fmt.Errorf("error executing word '%s': %w", token, err)
+				return i.newError(31, token, err)
 			}
 		} else if val, exists := i.variables[token]; exists { // Check for variables
 			// If the variable holds a block, execute it
 			if blockStr, ok := val.([]string); ok {
 				if err := i.execute(blockStr); err != nil {
-					return fmt.Errorf("error executing variable as word '%s': %w", token, err)
+					return i.newError(33, token, err)
 				}
 			} else if blockIface, ok := val.([]interface{}); ok {
 				// If it's []interface{}, try to convert it to []string
@@ -1665,11 +1736,11 @@ func (i *Interpreter) execute(tokens []string) error {
 					if s, isString := v.(string); isString {
 						convertedBlock[k] = s
 					} else {
-						return fmt.Errorf("variable '%s' contains non-string elements in block", token)
+						return i.newError(32, token)
 					}
 				}
 				if err := i.execute(convertedBlock); err != nil {
-					return fmt.Errorf("error executing variable as word '%s': %w", token, err)
+					return i.newError(33, token, err)
 				}
 			} else {
 				// Otherwise, push the variable's value onto the stack
@@ -1686,7 +1757,7 @@ func (i *Interpreter) execute(tokens []string) error {
 					i.push(num)
 				} else {
 					// If none of the above, it's an unrecognized token
-					return fmt.Errorf("unrecognized token: %s", token)
+					return i.newError(34, token)
 				}
 			}
 		}
@@ -1696,7 +1767,7 @@ func (i *Interpreter) execute(tokens []string) error {
 
 // Eval parses and executes a line of RPN code.
 func (i *Interpreter) Eval(line string) error {
-	tokens, err := tokenize(line) // Use a custom tokenizer
+	tokens, err := i.tokenize(line) // Use a custom tokenizer
 	if err != nil {
 		return err
 	}
@@ -1734,7 +1805,7 @@ func (i *Interpreter) generateSuggestions(input string) []string {
 }
 
 // tokenize splits the input string into tokens, handling quoted strings and comments.
-func tokenize(line string) ([]string, error) {
+func (i *Interpreter) tokenize(line string) ([]string, error) {
 	var tokens []string
 	inQuote := false
 	commentLevel := 0
@@ -1768,7 +1839,7 @@ func tokenize(line string) ([]string, error) {
 			}
 			commentLevel++
 		case r == ')':
-			return nil, fmt.Errorf("unmatched ')'")
+			return nil, i.newError(35)
 		case r == '"':
 			if currentToken.Len() > 0 {
 				tokens = append(tokens, currentToken.String())
@@ -1793,10 +1864,10 @@ func tokenize(line string) ([]string, error) {
 	}
 
 	if inQuote {
-								return nil, fmt.Errorf(`unmatched '"'`)
+								return nil, i.newError(36)
 	}
 	if commentLevel > 0 {
-		return nil, fmt.Errorf("unmatched '('")
+		return nil, i.newError(37)
 	}
 
 	if currentToken.Len() > 0 {
@@ -1862,9 +1933,9 @@ func formatWord(wordName string, wordDef []string) string {
 }
 
 // parseBlock finds a matching '}' for a '{' and returns the inner tokens.
-func parseBlock(tokens []string, start int) ([]string, int, error) {
+func (i *Interpreter) parseBlock(tokens []string, start int) ([]string, int, error) {
 	if tokens[start] != "{" {
-		return nil, 0, fmt.Errorf("expected '{' to start block")
+		return nil, 0, i.newError(38)
 	}
 	balance := 1
 	for j := start + 1; j < len(tokens); j++ {
@@ -1877,7 +1948,7 @@ func parseBlock(tokens []string, start int) ([]string, int, error) {
 			}
 		}
 	}
-	return nil, 0, fmt.Errorf("unmatched '{'")
+	return nil, 0, i.newError(39)
 }
 
 // updateStackView clears and repopulates the stack table.
@@ -1932,6 +2003,13 @@ func main() {
 	inputField.SetFieldBackgroundColor(tcell.ColorBlack)
 
 	interpreter := NewInterpreter(outputView, angleModeView, variablesTable, stackTable, inputField)
+
+	interpreter.opcodes["exit"] = func(i *Interpreter) error {
+		app.Stop()
+		return nil
+	}
+	interpreter.opcodes["quit"] = interpreter.opcodes["exit"]
+	interpreter.opcodes["bye"] = interpreter.opcodes["exit"]
 
 	interpreter.wordsTable.SetBorder(true).SetTitle("Words")
 
@@ -2002,65 +2080,53 @@ func main() {
 	if val, ok := interpreter.variables["_vars_value"].(bool); ok {
 		showVarsValue = val
 	}
-	showInternalVars := false
+	hideInternalVars := true
 	if val, ok := interpreter.variables["_hidden_vars"].(bool); ok {
-		showInternalVars = val
+		hideInternalVars = val
 	}
-	updateVariablesView(variablesTable, interpreter.variables, showVarsValue, showInternalVars, outputView)
+	updateVariablesView(variablesTable, interpreter.variables, showVarsValue, hideInternalVars, outputView)
 	// Initial words view update
 	updateWordsView(interpreter.wordsTable, interpreter.words)
 
 	inputField.SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyEnter {
 			line := inputField.GetText()
-			inputField.SetText("")
-
-			// Add to history
-			if line != "" {
-				history = append(history, line)
-				historyIndex = len(history)
-			}
-
-			if val, ok := interpreter.variables["_echo_mode"].(bool); ok && val {
-				fmt.Fprintln(outputView, ">> "+line)
-			}
-
-			if line == "quit" || line == "exit" || line == "bye" {
-				if val, ok := interpreter.variables["_exit_save"].(bool); ok && val {
-					if err := interpreter.saveState("default.json"); err != nil {
-						fmt.Fprintf(outputView, "Error saving state on exit: %v\n", err)
-					}
-				}
-				saveHistory() // Save history on exit
-				app.Stop()
+			if line == "" {
 				return
 			}
-
-			if err := interpreter.Eval(line); err != nil {
-				fmt.Fprintf(outputView, "Error: %v\n", err)
+			if len(history) == 0 || history[len(history)-1] != line {
+				history = append(history, line)
 			}
+			historyIndex = len(history)
+			saveHistory()
 
-			// Update angle and echo mode view
-			updateAngleAndEchoModeView(interpreter)
+			if val, ok := interpreter.variables["_echo_mode"].(bool); ok && val {
+				fmt.Fprintf(outputView, ">> %s\n", line)
+			}
+			if err := interpreter.Eval(line); err != nil {
+				fmt.Fprintf(outputView, "[red]%s[-]\n", err.Error())
+			} else {
+				interpreter.variables["_last_error"] = float64(0)
+			}
+			inputField.SetText("")
 
-			// Update stack view
+			// Update views
 			showStackType := false
 			if val, ok := interpreter.variables["_stack_type"].(bool); ok {
 				showStackType = val
 			}
 			updateStackView(stackTable, interpreter.stack, showStackType)
-			// Update variables view
 			showVarsValue := true
 			if val, ok := interpreter.variables["_vars_value"].(bool); ok {
 				showVarsValue = val
 			}
-			showInternalVars := false
+			hideInternalVars := true
 			if val, ok := interpreter.variables["_hidden_vars"].(bool); ok {
-				showInternalVars = val
+				hideInternalVars = val
 			}
-			updateVariablesView(variablesTable, interpreter.variables, showVarsValue, showInternalVars, outputView)
-
-			
+			updateVariablesView(variablesTable, interpreter.variables, showVarsValue, hideInternalVars, outputView)
+			updateAngleAndEchoModeView(interpreter)
+			updateWordsView(interpreter.wordsTable, interpreter.words)
 		}
 	})
 
@@ -2083,124 +2149,116 @@ func main() {
 			return nil
 		case tcell.KeyTab:
 			currentText := inputField.GetText()
-			// Generate suggestions if not already generated or if input changed
-			if len(interpreter.suggestions) == 0 || !strings.HasPrefix(interpreter.suggestions[0], currentText) {
-				interpreter.suggestions = interpreter.generateSuggestions(currentText)
-				interpreter.suggestionIndex = -1 // Reset index
-			}
-
+			// If we are already cycling through suggestions
 			if len(interpreter.suggestions) > 0 {
 				interpreter.suggestionIndex = (interpreter.suggestionIndex + 1) % len(interpreter.suggestions)
 				inputField.SetText(interpreter.suggestions[interpreter.suggestionIndex])
+			} else {
+				// Generate new suggestions
+				interpreter.suggestions = interpreter.generateSuggestions(currentText)
+				if len(interpreter.suggestions) > 0 {
+					interpreter.suggestionIndex = 0
+					inputField.SetText(interpreter.suggestions[interpreter.suggestionIndex])
+				}
 			}
 			return nil
+		default:
+			// Any other key press resets the suggestion state
+			interpreter.suggestions = []string{}
+			interpreter.suggestionIndex = -1
 		}
 		return event
 	})
 
+	// Layout
+	rightPanel := tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(angleModeView, 3, 0, false).
+		AddItem(stackTable, 0, 1, false).
+		AddItem(variablesTable, 0, 1, false).
+		AddItem(interpreter.wordsTable, 0, 1, false)
+
+	mainFlex := tview.NewFlex().
+		AddItem(outputView, 0, 2, false).
+		AddItem(rightPanel, 0, 1, false)
+
+	appFlex := tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(mainFlex, 0, 1, false).
+		AddItem(inputField, 3, 0, true)
+
+	app.SetRoot(appFlex, true).SetFocus(inputField)
+
 	
 
-	// Main layout
-	mainLayout := tview.NewFlex().
-		AddItem(outputView, 0, 2, false).
-		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
-			AddItem(angleModeView, 3, 1, false).
-			AddItem(stackTable, 0, 1, false).
-			AddItem(variablesTable, 0, 1, false).
-			AddItem(interpreter.wordsTable, 0, 1, false), 0, 1, false)
-
-	flex := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(mainLayout, 0, 1, false).
-		AddItem(inputField, 3, 1, true)
-
-	fmt.Fprintln(outputView, "RPN Interpreter written in Go")
-	fmt.Fprintln(outputView, "Enter 'quit', 'exit', or 'bye' to leave.")
-	fmt.Fprintln(outputView, "Enter 'help' for a list of commands.")
-
-	if err := app.SetRoot(flex, true).Run(); err != nil {
+	if err := app.Run(); err != nil {
 		panic(err)
 	}
 }
 
 // updateVariablesView clears and repopulates the variables table.
-func updateVariablesView(variablesTable *tview.Table, variables map[string]interface{}, showValue bool, showInternal bool, outputView *tview.TextView) {
+func updateVariablesView(variablesTable *tview.Table, variables map[string]interface{}, showValue, hideInternal bool, outputView *tview.TextView) {
 	variablesTable.Clear()
-	variablesTable.SetCell(0, 0, tview.NewTableCell("Name").SetSelectable(false).SetTextColor(tcell.ColorYellow))
-	variablesTable.SetCell(0, 1, tview.NewTableCell("Type").SetSelectable(false).SetTextColor(tcell.ColorYellow))
+	variablesTable.SetTitle(fmt.Sprintf("Variables (%d)", len(variables)))
+	variablesTable.SetCell(0, 0, tview.NewTableCell("Variable").SetSelectable(false).SetTextColor(tcell.ColorYellow))
 	if showValue {
-		variablesTable.SetCell(0, 2, tview.NewTableCell("Value").SetSelectable(false).SetTextColor(tcell.ColorYellow))
+		variablesTable.SetCell(0, 1, tview.NewTableCell("Value").SetSelectable(false).SetTextColor(tcell.ColorYellow))
 	}
 
-	// Get sorted variable names
-	var names []string
-	for name := range variables {
-		shouldSkip := false
-		// Check if it's an internal variable
-		if strings.HasPrefix(name, "_") {
-			// If showInternal is false (meaning _hidden_vars is false, so hide internal vars)
-			if !showInternal {
-				shouldSkip = true
-			}
+	// Sort keys for consistent order
+	keys := make([]string, 0, len(variables))
+	for k := range variables {
+		if !hideInternal && strings.HasPrefix(k, "_") {
+			continue
 		}
-
-		if !shouldSkip {
-			names = append(names, name)
-		}
+		keys = append(keys, k)
 	}
-	sort.Strings(names)
-	variablesTable.SetTitle(fmt.Sprintf("Variables (%d)", len(names)))
+	sort.Strings(keys)
 
 	row := 1
-	for _, name := range names {
-		value := variables[name]
-		var typeStr string
-		var formattedValue string = fmt.Sprintf("%v", value) // Default to original format
-		switch value.(type) {
-		case float64:
-			typeStr = "float"
-		case bool:
-			typeStr = "bool"
-		case string:
-			typeStr = "string"
-		case []string:
-			typeStr = "code"
-			// Manually format code block with curly braces
-			formattedValue = "{ " + strings.Join(value.([]string), " ") + " }"
-		case []interface{}:
-			typeStr = "code"
-			// Manually format code block with curly braces
-			strSlice := make([]string, len(value.([]interface{})))
-			for i, v := range value.([]interface{}) {
-				strSlice[i] = fmt.Sprintf("%v", v)
-			}
-			formattedValue = "{ " + strings.Join(strSlice, " ") + " }"
-		default:
-			typeStr = fmt.Sprintf("%T", value)
-		}
-		variablesTable.SetCell(row, 0, tview.NewTableCell(name).SetSelectable(false))
-		variablesTable.SetCell(row, 1, tview.NewTableCell(typeStr).SetSelectable(false))
+	for _, k := range keys {
+		v := variables[k]
+		variablesTable.SetCell(row, 0, tview.NewTableCell(k).SetSelectable(false))
 		if showValue {
-			variablesTable.SetCell(row, 2, tview.NewTableCell(formattedValue).SetSelectable(false))
+			var displayValue string
+			switch val := v.(type) {
+			case []string:
+				displayValue = "{...}" // Show ellipsis for blocks
+			case []interface{}:
+				displayValue = "{...}"
+			default:
+				displayValue = fmt.Sprintf("%v", val)
+			}
+			variablesTable.SetCell(row, 1, tview.NewTableCell(displayValue).SetSelectable(false))
 		}
 		row++
 	}
+	variablesTable.ScrollToBeginning()
 }
 
 // updateWordsView clears and repopulates the words table.
 func updateWordsView(wordsTable *tview.Table, words map[string][]string) {
-	wordsTable.SetTitle(fmt.Sprintf("Words (%d)", len(words)))
 	wordsTable.Clear()
+	wordsTable.SetTitle(fmt.Sprintf("Words (%d)", len(words)))
+	wordsTable.SetCell(0, 0, tview.NewTableCell("Word").SetSelectable(false).SetTextColor(tcell.ColorYellow))
+	wordsTable.SetCell(0, 1, tview.NewTableCell("Definition").SetSelectable(false).SetTextColor(tcell.ColorYellow))
 
-	// Get sorted word names
-	var names []string
-	for name := range words {
-		names = append(names, name)
+	// Sort keys for consistent order
+	keys := make([]string, 0, len(words))
+	for k := range words {
+		keys = append(keys, k)
 	}
-	sort.Strings(names)
+	sort.Strings(keys)
 
-	row := 0
-	for _, name := range names {
-		wordsTable.SetCell(row, 0, tview.NewTableCell(name).SetSelectable(false))
+	row := 1
+	for _, k := range keys {
+		v := words[k]
+		wordsTable.SetCell(row, 0, tview.NewTableCell(k).SetSelectable(false))
+		// Join the definition tokens into a single string for display
+		defStr := strings.Join(v, " ")
+		if len(defStr) > 40 { // Truncate long definitions
+			defStr = defStr[:37] + "..."
+		}
+		wordsTable.SetCell(row, 1, tview.NewTableCell(defStr).SetSelectable(false))
 		row++
 	}
+	wordsTable.ScrollToBeginning()
 }

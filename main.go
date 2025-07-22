@@ -1139,6 +1139,30 @@ func (i *Interpreter) registerOpcodes() {
 		return nil
 	}
 
+	i.opcodes["words"] = func(i *Interpreter) error {
+		var allWords []string
+
+		// Get core commands
+		for opcode := range i.opcodes {
+			allWords = append(allWords, opcode)
+		}
+
+		// Get user-defined words
+		for word := range i.words {
+			allWords = append(allWords, word)
+		}
+
+		// Get variables
+		for variable := range i.variables {
+			allWords = append(allWords, variable)
+		}
+
+		sort.Strings(allWords)
+
+		fmt.Fprintln(i.outputView, strings.Join(allWords, " "))
+		return nil
+	}
+
 	// Time and Date
 	i.opcodes["time"] = func(i *Interpreter) error {
 		i.push(time.Now().Format("15:04:05"))
@@ -1421,6 +1445,7 @@ func (i *Interpreter) registerOpcodes() {
 		fmt.Fprintln(i.outputView, "  len, mid, upper, lower: String manipulation")
 		fmt.Fprintln(i.outputView, "  ., print, cr, cls: Output")
 		fmt.Fprintln(i.outputView, "  save, restore, import, export, list: State management")
+		fmt.Fprintln(i.outputView, "  words: Display all defined words, variables and core commands")
 		fmt.Fprintln(i.outputView, "  time, date, year, month, day, hour, minute, second: Time and date functions")
 		
 		fmt.Fprintln(i.outputView, "  pi, e, phi, rand: Mathematical constants and random number generation")

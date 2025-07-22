@@ -2033,6 +2033,7 @@ func main() {
 	interpreter := NewInterpreter(outputView, angleModeView, variablesTable, stackTable, inputField)
 
 	interpreter.opcodes["exit"] = func(i *Interpreter) error {
+		// TODO : Add state saving state to default.json if _exit_save flag is set
 		app.Stop()
 		return nil
 	}

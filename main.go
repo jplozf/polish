@@ -89,7 +89,6 @@ var rpnDir = ".polish"
 
 const majorVersion = "0"
 const appName = "Polish"
-
 var version string // This will be set by ldflags during build
 
 // loadHistory loads command history from the history file.
@@ -973,7 +972,7 @@ func (i *Interpreter) registerOpcodes() {
 	}
 
 	// String manipulation
-	i.opcodes["strlen"] = func(i *Interpreter) error {
+	i.opcodes["len"] = func(i *Interpreter) error {
 		s, err := i.popString()
 		if err != nil {
 			return err
@@ -981,7 +980,7 @@ func (i *Interpreter) registerOpcodes() {
 		i.push(float64(len(s)))
 		return nil
 	}
-	i.opcodes["substr"] = func(i *Interpreter) error {
+	i.opcodes["mid"] = func(i *Interpreter) error {
 		length, err := i.popFloat()
 		if err != nil {
 			return err
@@ -1419,7 +1418,7 @@ func (i *Interpreter) registerOpcodes() {
 		fmt.Fprintln(i.outputView, "  store, load, edit, free: Variable storage (can store and execute code blocks)")
 		fmt.Fprintln(i.outputView, "  see [var:|word:]<name>: See the definition of a variable/word")
 		fmt.Fprintln(i.outputView, "  delete [var:|word:]<name>: Delete a variable/word (e.g. delete myvar)")
-		fmt.Fprintln(i.outputView, "  strlen, substr, upper, lower: String manipulation")
+		fmt.Fprintln(i.outputView, "  len, mid, upper, lower: String manipulation")
 		fmt.Fprintln(i.outputView, "  ., print, cr, cls: Output")
 		fmt.Fprintln(i.outputView, "  save, restore, import, export, list: State management")
 		fmt.Fprintln(i.outputView, "  time, date, year, month, day, hour, minute, second: Time and date functions")
@@ -1974,6 +1973,10 @@ func updateStackView(stackTable *tview.Table, stack []interface{}, showType bool
 }
 
 func main() {
+	var welcome = appName + " v" + version + " - RPN Interpreter written in Go.\n"
+	welcome += "Type 'exit', 'quit' or 'bye' to exit.\n"
+	welcome += "Type 'help' to have a summary of commands.\n\n"
+	
 	app := tview.NewApplication()
 
 	// Seed the random number generator
@@ -1983,7 +1986,7 @@ func main() {
 	loadHistory()
 
 	outputView := tview.NewTextView().SetDynamicColors(true).SetRegions(true).SetWrap(true).SetWordWrap(true)
-	outputView.SetBorder(true).SetTitle(appName + " " + version)
+	outputView.SetBorder(true).SetTitle(appName + " v" + version)
 	outputView.SetChangedFunc(func() {
 		outputView.ScrollToEnd()
 	})
@@ -2067,6 +2070,7 @@ func main() {
                 }
 			}
 		}
+		fmt.Fprintf(outputView, welcome)
 	}
 
 	// Initial stack view update
@@ -2187,11 +2191,10 @@ func main() {
 
 	app.SetRoot(appFlex, true).SetFocus(inputField)
 
-	
-
 	if err := app.Run(); err != nil {
 		panic(err)
 	}
+	fmt.Println(appName + " v" + version + " - https://github.com/jplozf/polish")
 }
 
 // updateVariablesView clears and repopulates the variables table.

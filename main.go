@@ -156,6 +156,7 @@ type Interpreter struct {
 	suggestionIndex   int             // New field for current suggestion index
 	inputField       *tview.InputField // New field for input field access
 	loopIndex        float64           // New field to store current loop index
+	clrEdit bool // Flag to clear or not the inputText field
 }
 
 // newError creates a new error with a code and formatted message.
@@ -287,6 +288,7 @@ func NewInterpreter(outputView *tview.TextView, angleModeView *tview.TextView, v
 		suggestionIndex:   -1,         // No suggestion selected initially
 		inputField:       inputField,
 	}
+	interp.clrEdit = true
 	interp.variables["_echo_mode"] = true
 	interp.variables["_degree_mode"] = false
 	interp.variables["_vars_value"] = true
@@ -1429,8 +1431,38 @@ func (i *Interpreter) registerOpcodes() {
 		return nil
 	}
 
-	
+	i.opcodes["val"] = func(i *Interpreter) error {
+		s, err := i.popString()
+		if err != nil {
+			return err
+		}
+		// Try to parse as a boolean
+		if s == "true" {
+			i.push(true)
+		} else if s == "false" {
+			i.push(false)
+		} else {
+			// Try to parse as a float
+			f, err := strconv.ParseFloat(s, 64)
+			if err == nil {
+				i.push(f)
+			} else {
+				// If it's neither, push the original string back
+				i.push(s)
+			}
+		}
+		return nil
+	}
 
+	i.opcodes["str"] = func(i *Interpreter) error {
+		v, err := i.pop()
+		if err != nil {
+			return err
+		}
+		i.push(fmt.Sprintf("%v", v))
+		return nil
+	}
+	
 	// Help
 	i.opcodes["help"] = func(i *Interpreter) error {
 		fmt.Fprintln(i.outputView, "Available commands:")
@@ -1442,7 +1474,7 @@ func (i *Interpreter) registerOpcodes() {
 		fmt.Fprintln(i.outputView, "  store, load, edit, free: Variable storage (can store and execute code blocks)")
 		fmt.Fprintln(i.outputView, "  see [var:|word:]<name>: See the definition of a variable/word")
 		fmt.Fprintln(i.outputView, "  delete [var:|word:]<name>: Delete a variable/word (e.g. delete myvar)")
-		fmt.Fprintln(i.outputView, "  len, mid, upper, lower: String manipulation")
+		fmt.Fprintln(i.outputView, "  len, mid, upper, lower, str, val: String manipulation")
 		fmt.Fprintln(i.outputView, "  ., print, cr, cls: Output")
 		fmt.Fprintln(i.outputView, "  save, restore, import, export, list: State management")
 		fmt.Fprintln(i.outputView, "  words: Display all defined words, variables and core commands")
@@ -1466,7 +1498,7 @@ func (i *Interpreter) registerOpcodes() {
 
 // execute runs a sequence of tokens through the interpreter.
 func (i *Interpreter) execute(tokens []string) error {
-	
+	i.clrEdit=true	
 	for j := 0; j < len(tokens); j++ {
 		token := tokens[j]
 
@@ -1697,6 +1729,7 @@ func (i *Interpreter) execute(tokens []string) error {
 			}
 
 			i.inputField.SetText(editString)
+			i.clrEdit=false
 			j += 1 // Consume the name token
 			continue
 		}
@@ -2138,7 +2171,9 @@ func main() {
 			} else {
 				interpreter.variables["_last_error"] = float64(0)
 			}
-			inputField.SetText("")
+			if interpreter.clrEdit {
+				inputField.SetText("")
+			}
 
 			// Update views
 			showStackType := false

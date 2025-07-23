@@ -89,6 +89,7 @@ var rpnDir = ".polish"
 
 const majorVersion = "0"
 const appName = "Polish"
+
 var version string // This will be set by ldflags during build
 
 // loadHistory loads command history from the history file.
@@ -142,21 +143,21 @@ func saveHistory() {
 
 // Interpreter holds the state of our RPN calculator.
 type Interpreter struct {
-	stack            []interface{}
-	opcodes          map[string]func(*Interpreter) error
-	variables        map[string]interface{}
-	words            map[string][]string
-	
-	outputView       *tview.TextView // New field for tview output
-	angleModeView    *tview.TextView // New field for angle mode display
-	variablesTable   *tview.Table    // New field for variables display
-	stackTable       *tview.Table    // New field for stack display
-	wordsTable       *tview.Table    // New field for words display
-	suggestions      []string        // New field for tab completion suggestions
-	suggestionIndex   int             // New field for current suggestion index
-	inputField       *tview.InputField // New field for input field access
-	loopIndex        float64           // New field to store current loop index
-	clrEdit bool // Flag to clear or not the inputText field
+	stack     []interface{}
+	opcodes   map[string]func(*Interpreter) error
+	variables map[string]interface{}
+	words     map[string][]string
+
+	outputView      *tview.TextView   // New field for tview output
+	angleModeView   *tview.TextView   // New field for angle mode display
+	variablesTable  *tview.Table      // New field for variables display
+	stackTable      *tview.Table      // New field for stack display
+	wordsTable      *tview.Table      // New field for words display
+	suggestions     []string          // New field for tab completion suggestions
+	suggestionIndex int               // New field for current suggestion index
+	inputField      *tview.InputField // New field for input field access
+	loopIndex       float64           // New field to store current loop index
+	clrEdit         bool              // Flag to clear or not the inputText field
 }
 
 // newError creates a new error with a code and formatted message.
@@ -241,15 +242,15 @@ func (i *Interpreter) loadState(filename string) error {
 	}
 
 	i.stack = state.Stack
-		// Merge loaded variables into existing ones, preserving internal variables
+	// Merge loaded variables into existing ones, preserving internal variables
 	for k, v := range state.Variables {
 		i.variables[k] = v
 	}
-		if state.Words == nil {
-			i.words = make(map[string][]string)
-		} else {
-			i.words = state.Words
-		}
+	if state.Words == nil {
+		i.words = make(map[string][]string)
+	} else {
+		i.words = state.Words
+	}
 	// Update the angle mode display after loading state
 	updateAngleAndEchoModeView(i)
 	// Update the variables view after loading state
@@ -274,19 +275,19 @@ func (i *Interpreter) loadState(filename string) error {
 // NewInterpreter creates a new interpreter instance with all opcodes registered.
 func NewInterpreter(outputView *tview.TextView, angleModeView *tview.TextView, variablesTable *tview.Table, stackTable *tview.Table, inputField *tview.InputField) *Interpreter {
 	interp := &Interpreter{
-		stack:            make([]interface{}, 0),
-		opcodes:          make(map[string]func(*Interpreter) error),
-		variables:        make(map[string]interface{}),
-		words:            make(map[string][]string),
-		
-		outputView:       outputView,
-		angleModeView:    angleModeView,
-		variablesTable:   variablesTable,
-		stackTable:       stackTable,
-		wordsTable:       tview.NewTable().SetBorders(false), // Initialize wordsTable
-		suggestions:      []string{}, // Initialize empty suggestions
-		suggestionIndex:   -1,         // No suggestion selected initially
-		inputField:       inputField,
+		stack:     make([]interface{}, 0),
+		opcodes:   make(map[string]func(*Interpreter) error),
+		variables: make(map[string]interface{}),
+		words:     make(map[string][]string),
+
+		outputView:      outputView,
+		angleModeView:   angleModeView,
+		variablesTable:  variablesTable,
+		stackTable:      stackTable,
+		wordsTable:      tview.NewTable().SetBorders(false), // Initialize wordsTable
+		suggestions:     []string{},                         // Initialize empty suggestions
+		suggestionIndex: -1,                                 // No suggestion selected initially
+		inputField:      inputField,
 	}
 	interp.clrEdit = true
 	interp.variables["_echo_mode"] = true
@@ -390,7 +391,7 @@ func (i *Interpreter) registerOpcodes() {
 		a, err := i.pop()
 		if err != nil {
 			return err
-	}
+		}
 
 		switch aVal := a.(type) {
 		case float64:
@@ -418,7 +419,7 @@ func (i *Interpreter) registerOpcodes() {
 		a, err := i.popFloat()
 		if err != nil {
 			return err
-	}
+		}
 		i.push(a - b)
 		return nil
 	}
@@ -910,7 +911,7 @@ func (i *Interpreter) registerOpcodes() {
 		return ErrBreak
 	}
 
-			i.opcodes["continue"] = func(i *Interpreter) error {
+	i.opcodes["continue"] = func(i *Interpreter) error {
 		return ErrContinue
 	}
 
@@ -968,7 +969,7 @@ func (i *Interpreter) registerOpcodes() {
 		val, ok := i.variables[name]
 		if !ok {
 			return i.newError(15, name)
-			}
+		}
 		i.push(val)
 		return nil
 	}
@@ -1109,7 +1110,7 @@ func (i *Interpreter) registerOpcodes() {
 		fmt.Fprintln(file, formatWord(wordName, wordDef))
 
 		fmt.Fprintln(file, "")
-		
+
 		return nil
 	}
 
@@ -1199,8 +1200,6 @@ func (i *Interpreter) registerOpcodes() {
 		return nil
 	}
 
-	
-
 	// Stack manipulation
 	i.opcodes["clear"] = func(i *Interpreter) error {
 		i.stack = make([]interface{}, 0)
@@ -1233,7 +1232,7 @@ func (i *Interpreter) registerOpcodes() {
 		updateWordsView(i.wordsTable, i.words)
 		return nil
 	}
-	
+
 	// Constants
 	i.opcodes["pi"] = func(i *Interpreter) error {
 		i.push(math.Pi)
@@ -1307,7 +1306,7 @@ func (i *Interpreter) registerOpcodes() {
 		if err != nil {
 			return err
 		}
-	a, err := i.popBool()
+		a, err := i.popBool()
 		if err != nil {
 			return err
 		}
@@ -1315,7 +1314,7 @@ func (i *Interpreter) registerOpcodes() {
 		return nil
 	}
 
-			i.opcodes["set"] = func(i *Interpreter) error {
+	i.opcodes["set"] = func(i *Interpreter) error {
 		name, err := i.popString()
 		if err != nil {
 			return err
@@ -1462,7 +1461,7 @@ func (i *Interpreter) registerOpcodes() {
 		i.push(fmt.Sprintf("%v", v))
 		return nil
 	}
-	
+
 	// Help
 	i.opcodes["help"] = func(i *Interpreter) error {
 		fmt.Fprintln(i.outputView, "Available commands:")
@@ -1479,10 +1478,10 @@ func (i *Interpreter) registerOpcodes() {
 		fmt.Fprintln(i.outputView, "  save, restore, import, export, list: State management")
 		fmt.Fprintln(i.outputView, "  words: Display all defined words, variables and core commands")
 		fmt.Fprintln(i.outputView, "  time, date, year, month, day, hour, minute, second: Time and date functions")
-		
+
 		fmt.Fprintln(i.outputView, "  pi, e, phi, rand: Mathematical constants and random number generation")
 		fmt.Fprintln(i.outputView, "  true, false, and, or, not, xor, toggle: Boolean operations")
-		
+
 		fmt.Fprintln(i.outputView, "  help: Display this help message")
 		fmt.Fprintln(i.outputView, "  ( ... ): Comments (can be nested)")
 		fmt.Fprintln(i.outputView, "Internal variables (use with 'set' and 'unset'):")
@@ -1498,14 +1497,14 @@ func (i *Interpreter) registerOpcodes() {
 
 // execute runs a sequence of tokens through the interpreter.
 func (i *Interpreter) execute(tokens []string) error {
-	i.clrEdit=true	
+	i.clrEdit = true
 	for j := 0; j < len(tokens); j++ {
 		token := tokens[j]
 
 		// Prioritize quoted strings as literals
 		if len(token) > 1 && token[0] == '"' && token[len(token)-1] == '"' {
 			i.push(token[1 : len(token)-1]) // Push the unquoted string
-			continue // Move to next token
+			continue                        // Move to next token
 		}
 
 		// Handle function definition
@@ -1555,7 +1554,7 @@ func (i *Interpreter) execute(tokens []string) error {
 				return i.newError(19)
 			}
 			name := tokens[j+1]
-			
+
 			var targetType string
 			var targetName string
 
@@ -1633,7 +1632,7 @@ func (i *Interpreter) execute(tokens []string) error {
 			found := false
 			if targetType == "word" || targetType == "any" {
 				if wordDef, ok := i.words[targetName]; ok {
-								fmt.Fprintln(i.outputView, formatWord(targetName, wordDef))
+					fmt.Fprintln(i.outputView, formatWord(targetName, wordDef))
 					found = true
 				}
 			}
@@ -1729,7 +1728,7 @@ func (i *Interpreter) execute(tokens []string) error {
 			}
 
 			i.inputField.SetText(editString)
-			i.clrEdit=false
+			i.clrEdit = false
 			j += 1 // Consume the name token
 			continue
 		}
@@ -1921,7 +1920,7 @@ func (i *Interpreter) tokenize(line string) ([]string, error) {
 	}
 
 	if inQuote {
-								return nil, i.newError(36)
+		return nil, i.newError(36)
 	}
 	if commentLevel > 0 {
 		return nil, i.newError(37)
@@ -1957,7 +1956,7 @@ func formatWord(wordName string, wordDef []string) string {
 			if nextBlockIndex != -1 {
 				end = nextBlockIndex
 			}
-			
+
 			// Join and print the non-block tokens
 			if i < end {
 				builder.WriteString("\n" + strings.Repeat(indentUnit, indentLevel))
@@ -2034,7 +2033,7 @@ func main() {
 	var welcome = appName + " v" + version + " - RPN Interpreter written in Go.\n"
 	welcome += "Type 'exit', 'quit' or 'bye' to exit.\n"
 	welcome += "Type 'help' to have a summary of commands.\n\n"
-	
+
 	app := tview.NewApplication()
 
 	// Seed the random number generator
@@ -2067,6 +2066,9 @@ func main() {
 
 	interpreter.opcodes["exit"] = func(i *Interpreter) error {
 		// TODO : Add state saving state to default.json if _exit_save flag is set
+		if val, ok := interpreter.variables["_exit_save"].(bool); ok && val { // save to default ?
+			interpreter.saveState("default.json")
+		}
 		app.Stop()
 		return nil
 	}
@@ -2084,49 +2086,49 @@ func main() {
 		fmt.Fprintf(outputView, "Error getting home directory: %v\n", err)
 	} else {
 		rpnPath := filepath.Join(home, rpnDir)
-				defaultRpnFile := filepath.Join(rpnPath, "default.json")
+		defaultRpnFile := filepath.Join(rpnPath, "default.json")
 		if _, err := os.Stat(defaultRpnFile); err == nil {
 			fmt.Fprintln(outputView, "Loading default.json...")
 			if err := interpreter.loadState("default.json"); err != nil {
 				fmt.Fprintf(outputView, "Error loading default.json: %v\n", err)
 			} else {
 				// Check for and execute 'init' variable if it's a code block
-                if initVal, ok := interpreter.variables["init"]; ok {
-                    
-                    var initBlock []string
-                    if blockStr, isStringSlice := initVal.([]string); isStringSlice {
-                        initBlock = blockStr
-                    } else if blockIface, isInterfaceSlice := initVal.([]interface{}); isInterfaceSlice {
-                        convertedBlock := make([]string, len(blockIface))
-                        for k, v := range blockIface {
-                            if s, isString := v.(string); isString {
-                                convertedBlock[k] = s
-                            } else {
-                                convertedBlock[k] = fmt.Sprintf("%v", v)
-                            }
-                        }
-                        initBlock = convertedBlock
-                    } else {
-                        // 'init' variable found but not a recognized block type
-                    }
+				if initVal, ok := interpreter.variables["init"]; ok {
 
-                    if initBlock != nil {
-                        fmt.Fprintln(outputView, "Executing 'init' variable...")
-                        if err := interpreter.execute(initBlock); err != nil {
-                            fmt.Fprintf(outputView, "Error executing 'init' variable: %v\n", err)
-                        }
-                    }
-                } else {
-                    // 'init' variable not found.
-                }
+					var initBlock []string
+					if blockStr, isStringSlice := initVal.([]string); isStringSlice {
+						initBlock = blockStr
+					} else if blockIface, isInterfaceSlice := initVal.([]interface{}); isInterfaceSlice {
+						convertedBlock := make([]string, len(blockIface))
+						for k, v := range blockIface {
+							if s, isString := v.(string); isString {
+								convertedBlock[k] = s
+							} else {
+								convertedBlock[k] = fmt.Sprintf("%v", v)
+							}
+						}
+						initBlock = convertedBlock
+					} else {
+						// 'init' variable found but not a recognized block type
+					}
 
-                // Check for and execute 'init' word if it exists
-                if initWord, ok := interpreter.words["init"]; ok {
-                    fmt.Fprintln(outputView, "Executing 'init' word...")
-                    if err := interpreter.execute(initWord); err != nil {
-                        fmt.Fprintf(outputView, "Error executing 'init' word: %v\n", err)
-                    }
-                }
+					if initBlock != nil {
+						fmt.Fprintln(outputView, "Executing 'init' variable...")
+						if err := interpreter.execute(initBlock); err != nil {
+							fmt.Fprintf(outputView, "Error executing 'init' variable: %v\n", err)
+						}
+					}
+				} else {
+					// 'init' variable not found.
+				}
+
+				// Check for and execute 'init' word if it exists
+				if initWord, ok := interpreter.words["init"]; ok {
+					fmt.Fprintln(outputView, "Executing 'init' word...")
+					if err := interpreter.execute(initWord); err != nil {
+						fmt.Fprintf(outputView, "Error executing 'init' word: %v\n", err)
+					}
+				}
 			}
 		}
 		fmt.Fprintf(outputView, welcome)

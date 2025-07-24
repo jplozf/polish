@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"math/rand"
@@ -148,7 +149,7 @@ type Interpreter struct {
 	variables map[string]interface{}
 	words     map[string][]string
 
-	outputView      *tview.TextView   // New field for tview output
+	outputView      io.Writer
 	angleModeView   *tview.TextView   // New field for angle mode display
 	variablesTable  *tview.Table      // New field for variables display
 	stackTable      *tview.Table      // New field for stack display
@@ -209,6 +210,9 @@ func (i *Interpreter) saveState(filename string) error {
 }
 
 func updateAngleAndEchoModeView(i *Interpreter) {
+	if i.angleModeView == nil {
+		return
+	}
 	i.angleModeView.Clear()
 	mode := "RAD"
 	if val, ok := i.variables["_degree_mode"].(bool); ok && val {
@@ -262,18 +266,24 @@ func (i *Interpreter) loadState(filename string) error {
 	if val, ok := i.variables["_hidden_vars"].(bool); ok {
 		hideInternalVars = val
 	}
-	updateVariablesView(i.variablesTable, i.variables, showVarsValue, hideInternalVars, i.outputView)
+	if i.variablesTable != nil {
+		if outputTextView, ok := i.outputView.(*tview.TextView); ok {
+			updateVariablesView(i.variablesTable, i.variables, showVarsValue, hideInternalVars, outputTextView)
+		}
+	}
 	// Update the stack view after loading state
 	showStackType := false
 	if val, ok := i.variables["_stack_type"].(bool); ok {
 		showStackType = val
 	}
-	updateStackView(i.stackTable, i.stack, showStackType)
+	if i.stackTable != nil {
+		updateStackView(i.stackTable, i.stack, showStackType)
+	}
 	return nil
 }
 
 // NewInterpreter creates a new interpreter instance with all opcodes registered.
-func NewInterpreter(outputView *tview.TextView, angleModeView *tview.TextView, variablesTable *tview.Table, stackTable *tview.Table, inputField *tview.InputField) *Interpreter {
+func NewInterpreter(outputView io.Writer, angleModeView *tview.TextView, variablesTable *tview.Table, stackTable *tview.Table, inputField *tview.InputField) *Interpreter {
 	interp := &Interpreter{
 		stack:     make([]interface{}, 0),
 		opcodes:   make(map[string]func(*Interpreter) error),
@@ -1015,7 +1025,9 @@ func (i *Interpreter) registerOpcodes() {
 		return nil
 	}
 	i.opcodes["cls"] = func(i *Interpreter) error {
-		i.outputView.Clear()
+		if tv, ok := i.outputView.(*tview.TextView); ok {
+			tv.Clear()
+		}
 		return nil
 	}
 
@@ -1223,13 +1235,19 @@ func (i *Interpreter) registerOpcodes() {
 		if val, ok := i.variables["_hidden_vars"].(bool); ok {
 			hideInternalVars = val
 		}
-		updateVariablesView(i.variablesTable, i.variables, showVarsValue, hideInternalVars, i.outputView)
+		if i.variablesTable != nil {
+			if outputTextView, ok := i.outputView.(*tview.TextView); ok {
+				updateVariablesView(i.variablesTable, i.variables, showVarsValue, hideInternalVars, outputTextView)
+			}
+		}
 		return nil
 	}
 
 	i.opcodes["forget"] = func(i *Interpreter) error {
 		i.words = make(map[string][]string, 0)
-		updateWordsView(i.wordsTable, i.words)
+		if i.wordsTable != nil {
+			updateWordsView(i.wordsTable, i.words)
+		}
 		return nil
 	}
 
@@ -1464,33 +1482,33 @@ func (i *Interpreter) registerOpcodes() {
 
 	// Help
 	i.opcodes["help"] = func(i *Interpreter) error {
-		fmt.Fprintln(i.outputView, "Available commands:")
-		fmt.Fprintln(i.outputView, "  +, -, *, /, %: Basic arithmetic")
-		fmt.Fprintln(i.outputView, "  sqrt, pow, nroot, sq, log, pow10, ln, exp, int, frac, asin, acos, atan, atan2: Math functions")
-		fmt.Fprintln(i.outputView, "  dup, drop, swap, depth, clear: Stack manipulation")
-		fmt.Fprintln(i.outputView, "  ==, !=, >, <, >=, <=: Comparison operators")
-		fmt.Fprintln(i.outputView, "  if, loop, while, break, continue, index: Control flow")
-		fmt.Fprintln(i.outputView, "  store, load, edit, free: Variable storage (can store and execute code blocks)")
-		fmt.Fprintln(i.outputView, "  see [var:|word:]<name>: See the definition of a variable/word")
-		fmt.Fprintln(i.outputView, "  delete [var:|word:]<name>: Delete a variable/word (e.g. delete myvar)")
-		fmt.Fprintln(i.outputView, "  len, mid, upper, lower, str, val: String manipulation")
-		fmt.Fprintln(i.outputView, "  ., print, cr, cls: Output")
-		fmt.Fprintln(i.outputView, "  save, restore, import, export, list: State management")
-		fmt.Fprintln(i.outputView, "  words: Display all defined words, variables and core commands")
-		fmt.Fprintln(i.outputView, "  time, date, year, month, day, hour, minute, second: Time and date functions")
-
-		fmt.Fprintln(i.outputView, "  pi, e, phi, rand: Mathematical constants and random number generation")
-		fmt.Fprintln(i.outputView, "  true, false, and, or, not, xor, toggle: Boolean operations")
-
-		fmt.Fprintln(i.outputView, "  help: Display this help message")
-		fmt.Fprintln(i.outputView, "  ( ... ): Comments (can be nested)")
-		fmt.Fprintln(i.outputView, "Internal variables (use with 'set' and 'unset'):")
-		fmt.Fprintln(i.outputView, "  _echo_mode: Toggle echoing of input commands")
-		fmt.Fprintln(i.outputView, "  _degree_mode: Set angle mode (true for degrees, false for radians)")
-		fmt.Fprintln(i.outputView, "  _vars_value: Toggle visibility of variable values")
-		fmt.Fprintln(i.outputView, "  _stack_type: Toggle display of stack value or type")
-		fmt.Fprintln(i.outputView, "  _hidden_vars: Toggle visibility of internal variables (starting with _)")
-		fmt.Fprintln(i.outputView, "  _exit_save: Automatically save state to default.json on exit")
+		helpText := `Available commands:
+  +, -, *, /, %: Basic arithmetic
+  sqrt, pow, nroot, sq, log, pow10, ln, exp, int, frac, asin, acos, atan, atan2: Math functions
+  dup, drop, swap, depth, clear: Stack manipulation
+  ==, !=, >, <, >=, <=: Comparison operators
+  if, loop, while, break, continue, index: Control flow
+  store, load, edit, free: Variable storage (can store and execute code blocks)
+  see [var:|word:]<name>: See the definition of a variable/word
+  delete [var:|word:]<name>: Delete a variable/word (e.g. delete myvar)
+  len, mid, upper, lower, str, val: String manipulation
+  ., print, cr, cls: Output
+  save, restore, import, export, list: State management
+  words: Display all defined words, variables and core commands
+  time, date, year, month, day, hour, minute, second: Time and date functions
+  pi, e, phi, rand: Mathematical constants and random number generation
+  true, false, and, or, not, xor, toggle: Boolean operations
+  help: Display this help message
+  ( ... ): Comments (can be nested)
+Internal variables (use with 'set' and 'unset'):
+  _echo_mode: Toggle echoing of input commands
+  _degree_mode: Set angle mode (true for degrees, false for radians)
+  _vars_value: Toggle visibility of variable values
+  _stack_type: Toggle display of stack value or type
+  _hidden_vars: Toggle visibility of internal variables (starting with _)
+  _exit_save: Automatically save state to default.json on exit
+`
+		fmt.Fprintln(i.outputView, helpText)
 		return nil
 	}
 }
@@ -1498,8 +1516,23 @@ func (i *Interpreter) registerOpcodes() {
 // execute runs a sequence of tokens through the interpreter.
 func (i *Interpreter) execute(tokens []string) error {
 	i.clrEdit = true
+	commentLevel := 0
 	for j := 0; j < len(tokens); j++ {
 		token := tokens[j]
+
+		if commentLevel > 0 {
+			if token == "(" {
+				commentLevel++
+			} else if token == ")" {
+				commentLevel--
+			}
+			continue
+		}
+
+		if token == "(" {
+			commentLevel++
+			continue
+		}
 
 		// Prioritize quoted strings as literals
 		if len(token) > 1 && token[0] == '"' && token[len(token)-1] == '"' {
@@ -1533,7 +1566,9 @@ func (i *Interpreter) execute(tokens []string) error {
 				wordDef = append(wordDef, tokens[j])
 			}
 			i.words[wordName] = wordDef
-			updateWordsView(i.wordsTable, i.words)
+			if i.wordsTable != nil {
+				updateWordsView(i.wordsTable, i.words)
+			}
 			continue
 		}
 
@@ -1577,7 +1612,9 @@ func (i *Interpreter) execute(tokens []string) error {
 			if targetType == "word" || targetType == "any" {
 				if _, ok := i.words[targetName]; ok {
 					delete(i.words, targetName)
-					updateWordsView(i.wordsTable, i.words)
+					if i.wordsTable != nil {
+						updateWordsView(i.wordsTable, i.words)
+					}
 					deleted = true
 				}
 			}
@@ -1593,7 +1630,11 @@ func (i *Interpreter) execute(tokens []string) error {
 					if val, ok := i.variables["_hidden_vars"].(bool); ok {
 						hideInternalVars = val
 					}
-					updateVariablesView(i.variablesTable, i.variables, showVarsValue, hideInternalVars, i.outputView)
+					if i.variablesTable != nil {
+						if outputTextView, ok := i.outputView.(*tview.TextView); ok {
+							updateVariablesView(i.variablesTable, i.variables, showVarsValue, hideInternalVars, outputTextView)
+						}
+					}
 					deleted = true
 				}
 			}
@@ -1669,6 +1710,11 @@ func (i *Interpreter) execute(tokens []string) error {
 
 		// Handle edit command
 		if token == "edit" {
+			if i.inputField == nil {
+				// Silently ignore in non-interactive mode
+				j++ // consume the name token
+				continue
+			}
 			if len(tokens) < j+2 {
 				return i.newError(24)
 			}
@@ -1818,6 +1864,9 @@ func (i *Interpreter) execute(tokens []string) error {
 			}
 		}
 	}
+	if commentLevel > 0 {
+		return i.newError(37)
+	}
 	return nil
 }
 
@@ -1860,11 +1909,10 @@ func (i *Interpreter) generateSuggestions(input string) []string {
 	return suggestions
 }
 
-// tokenize splits the input string into tokens, handling quoted strings and comments.
+// tokenize splits the input string into tokens, handling quoted strings.
 func (i *Interpreter) tokenize(line string) ([]string, error) {
 	var tokens []string
 	inQuote := false
-	commentLevel := 0
 	var currentToken strings.Builder
 
 	for _, r := range line {
@@ -1878,24 +1926,7 @@ func (i *Interpreter) tokenize(line string) ([]string, error) {
 			continue
 		}
 
-		if commentLevel > 0 {
-			if r == '(' {
-				commentLevel++
-			} else if r == ')' {
-				commentLevel--
-			}
-			continue
-		}
-
 		switch {
-		case r == '(':
-			if currentToken.Len() > 0 {
-				tokens = append(tokens, currentToken.String())
-				currentToken.Reset()
-			}
-			commentLevel++
-		case r == ')':
-			return nil, i.newError(35)
 		case r == '"':
 			if currentToken.Len() > 0 {
 				tokens = append(tokens, currentToken.String())
@@ -1921,9 +1952,6 @@ func (i *Interpreter) tokenize(line string) ([]string, error) {
 
 	if inQuote {
 		return nil, i.newError(36)
-	}
-	if commentLevel > 0 {
-		return nil, i.newError(37)
 	}
 
 	if currentToken.Len() > 0 {

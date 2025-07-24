@@ -80,7 +80,8 @@ var errors = []Error{
 	{Code: 47, Message: "failed to open file %s for export: %w"},
 	{Code: 48, Message: "failed to read RPN directory %s: %w"},
 	{Code: 49, Message: "while: condition must evaluate to a boolean or number, got %T"},
-	{Code: 50, Message: "'%s' is an internal command and cannot be viewed"},
+	{Code: 50, Message: "'%s' is low level defined into the core"},
+	{Code: 51, Message: "execution interrupted by user"},
 }
 
 // History variables
@@ -145,10 +146,11 @@ func saveHistory() {
 
 // Interpreter holds the state of our RPN calculator.
 type Interpreter struct {
-	stack     []interface{}
-	opcodes   map[string]func(*Interpreter) error
-	variables map[string]interface{}
-	words     map[string][]string
+	stack       []interface{}
+	opcodes     map[string]func(*Interpreter) error
+	variables   map[string]interface{}
+	words       map[string][]string
+	interrupted chan struct{}
 
 	outputView      io.Writer
 	angleModeView   *tview.TextView   // New field for angle mode display
@@ -286,10 +288,11 @@ func (i *Interpreter) loadState(filename string) error {
 // NewInterpreter creates a new interpreter instance with all opcodes registered.
 func NewInterpreter(outputView io.Writer, angleModeView *tview.TextView, variablesTable *tview.Table, stackTable *tview.Table, inputField *tview.InputField) *Interpreter {
 	interp := &Interpreter{
-		stack:     make([]interface{}, 0),
-		opcodes:   make(map[string]func(*Interpreter) error),
-		variables: make(map[string]interface{}),
-		words:     make(map[string][]string),
+		stack:       make([]interface{}, 0),
+		opcodes:     make(map[string]func(*Interpreter) error),
+		variables:   make(map[string]interface{}),
+		words:       make(map[string][]string),
+		interrupted: make(chan struct{}, 1),
 
 		outputView:      outputView,
 		angleModeView:   angleModeView,
@@ -393,6 +396,18 @@ func (i *Interpreter) popBlock() ([]string, error) {
 
 // registerOpcodes maps string commands to their functions.
 func (i *Interpreter) registerOpcodes() {
+	// Null words treated directly into the parser
+	i.opcodes[":"] = nil
+	i.opcodes[";"] = nil
+	i.opcodes["delete"] = nil
+	i.opcodes["edit"] = nil
+	i.opcodes["see"] = nil
+	i.opcodes["("] = nil
+	i.opcodes[")"] = nil
+	i.opcodes["{"] = nil
+	i.opcodes["}"] = nil
+	i.opcodes["\""] = nil
+
 	// Arithmetic & String Concat
 	i.opcodes["+"] = func(i *Interpreter) error {
 		b, err := i.pop()
@@ -422,6 +437,7 @@ func (i *Interpreter) registerOpcodes() {
 		}
 		return nil
 	}
+
 	i.opcodes["-"] = func(i *Interpreter) error {
 		b, err := i.popFloat()
 		if err != nil {
@@ -1519,6 +1535,14 @@ func (i *Interpreter) execute(tokens []string) error {
 	i.clrEdit = true
 	commentLevel := 0
 	for j := 0; j < len(tokens); j++ {
+		// Check for interruption
+		select {
+		case <-i.interrupted:
+			return i.newError(51)
+		default:
+			// Continue execution
+		}
+
 		token := tokens[j]
 
 		if commentLevel > 0 {
@@ -1880,6 +1904,12 @@ func (i *Interpreter) execute(tokens []string) error {
 
 // Eval parses and executes a line of RPN code.
 func (i *Interpreter) Eval(line string) error {
+	// Drain the interrupted channel before execution
+	select {
+	case <-i.interrupted:
+	default:
+	}
+
 	tokens, err := i.tokenize(line) // Use a custom tokenizer
 	if err != nil {
 		return err
@@ -2101,7 +2131,6 @@ func main() {
 	interpreter := NewInterpreter(outputView, angleModeView, variablesTable, stackTable, inputField)
 
 	interpreter.opcodes["exit"] = func(i *Interpreter) error {
-		// TODO : Add state saving state to default.json if _exit_save flag is set
 		if val, ok := interpreter.variables["_exit_save"].(bool); ok && val { // save to default ?
 			interpreter.saveState("default.json")
 		}

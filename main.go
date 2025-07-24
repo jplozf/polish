@@ -80,6 +80,7 @@ var errors = []Error{
 	{Code: 47, Message: "failed to open file %s for export: %w"},
 	{Code: 48, Message: "failed to read RPN directory %s: %w"},
 	{Code: 49, Message: "while: condition must evaluate to a boolean or number, got %T"},
+	{Code: 50, Message: "'%s' is an internal command and cannot be viewed"},
 }
 
 // History variables
@@ -1668,6 +1669,13 @@ func (i *Interpreter) execute(tokens []string) error {
 			} else {
 				targetType = "any"
 				targetName = name
+			}
+
+			// Check if it's an internal command
+			if _, exists := i.opcodes[targetName]; exists {
+				if targetType == "any" || targetType == "word" {
+					return i.newError(50, targetName)
+				}
 			}
 
 			found := false

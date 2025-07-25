@@ -1892,6 +1892,16 @@ func (i *Interpreter) execute(tokens []string) error {
 				if err := i.execute(convertedBlock); err != nil {
 					return i.newError(33, token, err)
 				}
+			} else if blockStr, ok := val.(string); ok && strings.HasPrefix(blockStr, "{") && strings.HasSuffix(blockStr, "}") {
+				// If it's a string that looks like a block, tokenize and execute it
+				innerContent := strings.TrimSpace(blockStr[1 : len(blockStr)-1])
+				tempTokens, err := i.tokenize(innerContent)
+				if err != nil {
+					return i.newError(33, token, fmt.Errorf("failed to tokenize string block: %w", err))
+				}
+				if err := i.execute(tempTokens); err != nil {
+					return i.newError(33, token, err)
+				}
 			} else {
 				// Otherwise, push the variable's value onto the stack
 				i.push(val)
@@ -2178,21 +2188,30 @@ func main() {
 				if initVal, ok := interpreter.variables["init"]; ok {
 
 					var initBlock []string
-					if blockStr, isStringSlice := initVal.([]string); isStringSlice {
-						initBlock = blockStr
-					} else if blockIface, isInterfaceSlice := initVal.([]interface{}); isInterfaceSlice {
-						convertedBlock := make([]string, len(blockIface))
-						for k, v := range blockIface {
-							if s, isString := v.(string); isString {
-								convertedBlock[k] = s
-							} else {
-								convertedBlock[k] = fmt.Sprintf("%v", v)
-							}
-						}
-						initBlock = convertedBlock
-					} else {
-						// 'init' variable found but not a recognized block type
-					}
+                    if blockStr, isStringSlice := initVal.([]string); isStringSlice {
+                        initBlock = blockStr
+                    } else if initStr, isString := initVal.(string); isString {
+                        // If it's a string, try to tokenize it as a block
+                        if strings.HasPrefix(initStr, "{") && strings.HasSuffix(initStr, "}") {
+                            innerContent := strings.TrimSpace(initStr[1 : len(initStr)-1])
+                            tempTokens, err := interpreter.tokenize(innerContent)
+                            if err == nil {
+                                initBlock = tempTokens
+                            } else {
+                                fmt.Fprintf(outputView, "Warning: 'init' variable is a string that looks like a block, but failed to tokenize: %v\n", err)
+                            }
+                        }
+                    } else if blockIface, isInterfaceSlice := initVal.([]interface{}); isInterfaceSlice {
+                        convertedBlock := make([]string, len(blockIface))
+                        for k, v := range blockIface {
+                            if s, isString := v.(string); isString {
+                                convertedBlock[k] = s
+                            } else {
+                                convertedBlock[k] = fmt.Sprintf("%v", v)
+                            }
+                        }
+                        initBlock = convertedBlock
+                    }
 
 					if initBlock != nil {
 						fmt.Fprintln(outputView, "Executing 'init' variable...")

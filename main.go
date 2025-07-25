@@ -596,6 +596,22 @@ func (i *Interpreter) registerOpcodes() {
 		i.push(math.Log(a))
 		return nil
 	}
+
+	i.opcodes["factorial"] = func(i *Interpreter) error {
+		val, err := i.popFloat()
+		if err != nil {
+			return err
+		}
+		if val < 0 || val != math.Trunc(val) {
+			return i.newError(3, "non-negative integer for factorial") // Assuming error code 3 for type error
+		}
+		result := float64(1)
+		for k := float64(1); k <= val; k++ {
+			result *= k
+		}
+		i.push(result)
+		return nil
+	}
 	i.opcodes["int"] = func(i *Interpreter) error {
 		a, err := i.popFloat()
 		if err != nil {
@@ -1517,7 +1533,7 @@ func (i *Interpreter) registerOpcodes() {
 	i.opcodes["help"] = func(i *Interpreter) error {
 		helpText := `Available commands:
   +, -, *, /, %: Basic arithmetic
-  sqrt, pow, nroot, sq, log, pow10, ln, exp, int, frac, asin, acos, atan, atan2: Math functions
+  sqrt, pow, nroot, sq, log, pow10, ln, factorial, exp, int, frac, asin, acos, atan, atan2: Math functions
   dup, drop, swap, depth, clear: Stack manipulation
   ==, !=, >, <, >=, <=: Comparison operators
   if, loop, while, break, continue, index: Control flow

@@ -2355,16 +2355,28 @@ func main() {
 			return nil
 		case tcell.KeyTab:
 			currentText := inputField.GetText()
-			// If we are already cycling through suggestions
-			if len(interpreter.suggestions) > 0 {
-				interpreter.suggestionIndex = (interpreter.suggestionIndex + 1) % len(interpreter.suggestions)
-				inputField.SetText(interpreter.suggestions[interpreter.suggestionIndex])
+			lastSpace := strings.LastIndexFunc(currentText, unicode.IsSpace)
+			var currentWord string
+			if lastSpace == -1 {
+				currentWord = currentText
 			} else {
-				// Generate new suggestions
-				interpreter.suggestions = interpreter.generateSuggestions(currentText)
+				currentWord = currentText[lastSpace+1:]
+			}
+
+			// If we are already cycling through suggestions or a new word is being typed
+			if len(interpreter.suggestions) > 0 && strings.HasPrefix(interpreter.suggestions[0], currentWord) {
+				interpreter.suggestionIndex = (interpreter.suggestionIndex + 1) % len(interpreter.suggestions)
+				// Replace only the last word with the suggestion
+				newText := currentText[:len(currentText)-len(currentWord)] + interpreter.suggestions[interpreter.suggestionIndex]
+				inputField.SetText(newText)
+			} else {
+				// Generate new suggestions based on the current word
+				interpreter.suggestions = interpreter.generateSuggestions(currentWord)
 				if len(interpreter.suggestions) > 0 {
 					interpreter.suggestionIndex = 0
-					inputField.SetText(interpreter.suggestions[interpreter.suggestionIndex])
+					// Replace only the last word with the suggestion
+					newText := currentText[:len(currentText)-len(currentWord)] + interpreter.suggestions[interpreter.suggestionIndex]
+					inputField.SetText(newText)
 				}
 			}
 			return nil

@@ -169,10 +169,10 @@ func (i *Interpreter) newError(code int, args ...interface{}) error {
 	for _, e := range errors {
 		if e.Code == code {
 			i.variables["_last_error"] = float64(code)
-			return fmt.Errorf(fmt.Sprintf("error %d: %s", e.Code, e.Message), args...)
+			return fmt.Errorf(fmt.Sprintf("[red]error %d: %s[white]", e.Code, e.Message), args...)
 		}
 	}
-	return fmt.Errorf("unknown error code: %d", code)
+	return fmt.Errorf("[red]unknown error code: %d[white]", code)
 }
 
 // InterpreterState represents the savable state of the interpreter.
@@ -868,6 +868,13 @@ func (i *Interpreter) registerOpcodes() {
 			return err
 		}
 		for j := 0; j < int(count); j++ {
+			// Check for interruption inside the loop
+			select {
+			case <-i.interrupted:
+				return i.newError(51)
+			default:
+				// Continue execution
+			}
 			i.loopIndex = float64(j) // Set current loop index
 			if err := i.execute(block); err != nil {
 				if err == ErrBreak {
@@ -878,6 +885,7 @@ func (i *Interpreter) registerOpcodes() {
 					return err
 				}
 			}
+			time.Sleep(time.Millisecond) // Yield to other goroutines
 		}
 		i.loopIndex = -1 // Reset loop index after loop completes
 		return nil
@@ -894,6 +902,13 @@ func (i *Interpreter) registerOpcodes() {
 		}
 
 		for {
+			// Check for interruption inside the loop
+			select {
+			case <-i.interrupted:
+				return i.newError(51)
+			default:
+				// Continue execution
+			}
 			// Execute the condition block
 			if err := i.execute(conditionBlock); err != nil {
 				return err
@@ -930,6 +945,7 @@ func (i *Interpreter) registerOpcodes() {
 					return err
 				}
 			}
+			time.Sleep(time.Millisecond) // Yield to other goroutines
 		}
 		return nil
 	}
@@ -2112,6 +2128,7 @@ func main() {
 	outputView.SetBorder(true).SetTitle(appName + " v" + version)
 	outputView.SetChangedFunc(func() {
 		outputView.ScrollToEnd()
+		app.Draw()
 	})
 
 	stackTable := tview.NewTable().SetBorders(false)
@@ -2220,6 +2237,7 @@ func main() {
 
 	inputField.SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyEnter {
+/*	
 			line := inputField.GetText()
 			if line == "" {
 				return
@@ -2259,11 +2277,79 @@ func main() {
 			updateVariablesView(variablesTable, interpreter.variables, showVarsValue, hideInternalVars, outputView)
 			updateAngleAndEchoModeView(interpreter)
 			updateWordsView(interpreter.wordsTable, interpreter.words)
+*/
+			line := inputField.GetText()
+			if line == "" {
+				return
+			}
+
+			// Add to history
+			history = append(history, line)
+			historyIndex = len(history)
+
+			if val, ok := interpreter.variables["_echo_mode"].(bool); ok && val {
+				fmt.Fprintln(outputView, "> "+line)
+			}
+
+			// Execute in a goroutine to avoid blocking the UI
+			go func(l string) {
+				if err := interpreter.Eval(l); err != nil {
+					// Use QueueUpdateDraw to safely update UI from a goroutine
+					app.QueueUpdateDraw(func() {
+						fmt.Fprintln(outputView, err)
+					})
+				}
+				// Redraw the application to reflect any state changes
+				app.QueueUpdateDraw(func() {
+					if interpreter.clrEdit {
+						inputField.SetText("")
+					}
+					showStackType := false
+					if val, ok := interpreter.variables["_stack_type"].(bool); ok {
+						showStackType = val
+					}
+					updateStackView(stackTable, interpreter.stack, showStackType)
+					showVarsValue := true
+					if val, ok := interpreter.variables["_vars_value"].(bool); ok {
+						showVarsValue = val
+					}
+					hideInternalVars := true
+					if val, ok := interpreter.variables["_hidden_vars"].(bool); ok {
+						hideInternalVars = val
+					}
+					updateVariablesView(variablesTable, interpreter.variables, showVarsValue, hideInternalVars, outputView)
+					updateWordsView(interpreter.wordsTable, interpreter.words)
+					updateAngleAndEchoModeView(interpreter)
+				})
+			}(line)
+
+
+		}
+	})
+
+	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Key() {
+		case tcell.KeyEscape:
+			// Non-blocking send to the interrupted channel
+			select {
+			case interpreter.interrupted <- struct{}{}:
+			default:
+			}
+			return nil
+		default:
+			return event
 		}
 	})
 
 	inputField.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
+		case tcell.KeyEscape:
+			// Non-blocking send to the interrupted channel
+			select {
+			case interpreter.interrupted <- struct{}{}:
+			default:
+			}
+			return nil
 		case tcell.KeyUp:
 			if historyIndex > 0 {
 				historyIndex--

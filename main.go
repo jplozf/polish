@@ -82,6 +82,7 @@ var errors = []Error{
 	{Code: 49, Message: "while: condition must evaluate to a boolean or number, got %T"},
 	{Code: 50, Message: "'%s' is low level defined into the core"},
 	{Code: 51, Message: "execution interrupted by user"},
+	{Code: 52, Message: "factorial: expected a non-negative integer, got %v"},
 }
 
 // History variables
@@ -603,7 +604,7 @@ func (i *Interpreter) registerOpcodes() {
 			return err
 		}
 		if val < 0 || val != math.Trunc(val) {
-			return i.newError(3, "non-negative integer for factorial") // Assuming error code 3 for type error
+			return i.newError(52, val)
 		}
 		result := float64(1)
 		for k := float64(1); k <= val; k++ {
@@ -2272,7 +2273,6 @@ func main() {
 
 	inputField.SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyEnter {
-/*	
 			line := inputField.GetText()
 			if line == "" {
 				return
@@ -2312,53 +2312,6 @@ func main() {
 			updateVariablesView(variablesTable, interpreter.variables, showVarsValue, hideInternalVars, outputView)
 			updateAngleAndEchoModeView(interpreter)
 			updateWordsView(interpreter.wordsTable, interpreter.words)
-*/
-			line := inputField.GetText()
-			if line == "" {
-				return
-			}
-
-			// Add to history
-			history = append(history, line)
-			historyIndex = len(history)
-
-			if val, ok := interpreter.variables["_echo_mode"].(bool); ok && val {
-				fmt.Fprintln(outputView, "> "+line)
-			}
-
-			// Execute in a goroutine to avoid blocking the UI
-			go func(l string) {
-				if err := interpreter.Eval(l); err != nil {
-					// Use QueueUpdateDraw to safely update UI from a goroutine
-					app.QueueUpdateDraw(func() {
-						fmt.Fprintln(outputView, err)
-					})
-				}
-				// Redraw the application to reflect any state changes
-				app.QueueUpdateDraw(func() {
-					if interpreter.clrEdit {
-						inputField.SetText("")
-					}
-					showStackType := false
-					if val, ok := interpreter.variables["_stack_type"].(bool); ok {
-						showStackType = val
-					}
-					updateStackView(stackTable, interpreter.stack, showStackType)
-					showVarsValue := true
-					if val, ok := interpreter.variables["_vars_value"].(bool); ok {
-						showVarsValue = val
-					}
-					hideInternalVars := true
-					if val, ok := interpreter.variables["_hidden_vars"].(bool); ok {
-						hideInternalVars = val
-					}
-					updateVariablesView(variablesTable, interpreter.variables, showVarsValue, hideInternalVars, outputView)
-					updateWordsView(interpreter.wordsTable, interpreter.words)
-					updateAngleAndEchoModeView(interpreter)
-				})
-			}(line)
-
-
 		}
 	})
 

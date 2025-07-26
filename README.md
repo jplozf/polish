@@ -194,8 +194,9 @@ These variables start with `_` and control interpreter behavior. Use `set`, `uns
 *   `_degree_mode`: `true` for degrees in trigonometric functions, `false` for radians.
 *   `_vars_value`: `true` to show variable values in the variables view, `false` to show types.
 *   `_stack_type`: `true` to show stack item types, `false` to show values.
-*   `_hidden_vars`: `true` to hide internal variables in the variables view, `false` to show all.
+*   `_hidden_vars`: `true` to show internal variables in the variables view, `false` to hide them.
 *   `_exit_save`: `true` to automatically save state to `default.json` on exit.
+*   `_last_x`: Stores the last value popped from the stack.
 
 ```rpn
 "_echo_mode" toggle
@@ -219,6 +220,8 @@ Comments start with `(` and end with `)`. They can be nested.
 
 The interpreter provides specific error messages for various issues, such as stack underflow, type errors, undefined variables, and syntax errors.
 
+*   `_last_error`: Contains the code of the last error. This is a read-only variable.
+
 ```rpn
 ; ( Will now show: error 57: semicolon out of context )
 1 + ( Will show: error 1: stack underflow )
@@ -231,4 +234,4 @@ Contributions are welcome! Please feel free to open issues or pull requests on t
 
 ## License
 
-This project is licensed under the MIT License. See the `LICENSE.md` file for details.
+This project is licensed under the GNU General Public License - see the [LICENSE.md](LICENSE.md) file for details.

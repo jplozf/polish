@@ -327,6 +327,7 @@ func NewInterpreter(app *tview.Application, appFlex *tview.Flex, outputView io.W
 	interp.variables["_hidden_vars"] = false
 	interp.variables["_exit_save"] = false
 	interp.variables["_last_error"] = float64(0)
+	interp.variables["_last_x"] = nil // Initialize _last_x
 	interp.loopIndex = -1 // Initialize loop index to -1 (no active loop)
 	interp.registerOpcodes()
 	return interp
@@ -344,6 +345,7 @@ func (i *Interpreter) pop() (interface{}, error) {
 	}
 	val := i.stack[len(i.stack)-1]
 	i.stack = i.stack[:len(i.stack)-1]
+	i.variables["_last_x"] = val // Store the popped value in _last_x
 	return val, nil
 }
 

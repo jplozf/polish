@@ -1163,7 +1163,19 @@ func (i *Interpreter) registerOpcodes() {
 			return i.newError(46, fullPath, err)
 		}
 
-		return i.Eval(string(content))
+		err = i.Eval(string(content))
+		if err != nil {
+			return err
+		}
+
+		// After importing, check for and execute a "main" word if it exists
+		if mainWord, ok := i.words["main"]; ok {
+			err := i.execute(mainWord)
+			if err != nil {
+				return i.newError(31, "main", err) // Error executing word 'main'
+			}
+		}
+		return nil
 	}
 
 	i.opcodes["export"] = func(i *Interpreter) error {

@@ -87,6 +87,7 @@ var errors = []Error{
 	{Code: 54, Message: "editfile: file not found: %s"},
 	{Code: 55, Message: "variable names cannot contain spaces: '%s'"},
 	{Code: 56, Message: "cannot define local variable '%s' in global scope"},
+	{Code: 57, Message: "semicolon out of context"},
 }
 
 // History variables
@@ -1744,6 +1745,11 @@ func (i *Interpreter) execute(tokens []string) error {
 				updateWordsView(i.wordsTable, i.words)
 			}
 			continue
+		}
+
+		// Handle end of function definition or standalone semicolon
+		if token == ";" {
+			return i.newError(57) // Return an error for out-of-context semicolons
 		}
 
 		// Handle code blocks for control flow

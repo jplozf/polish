@@ -83,6 +83,9 @@ var errors = []Error{
 	{Code: 50, Message: "'%s' is low level defined into the core"},
 	{Code: 51, Message: "execution interrupted by user"},
 	{Code: 52, Message: "factorial: expected a non-negative integer, got %v"},
+	{Code: 53, Message: "editfile: missing filename"},
+	{Code: 54, Message: "editfile: file not found: %s"},
+	{Code: 55, Message: "variable names cannot contain spaces: '%s'"},
 }
 
 // History variables
@@ -163,6 +166,11 @@ type Interpreter struct {
 	inputField      *tview.InputField // New field for input field access
 	loopIndex       float64           // New field to store current loop index
 	clrEdit         bool              // Flag to clear or not the inputText field
+
+	editingFile     bool   // Flag to indicate if currently in file editing mode
+	currentEditFile string // Stores the path of the file being edited
+	app             *tview.Application // Reference to the tview application
+	appFlex         *tview.Flex        // Reference to the main application flex layout
 }
 
 // newError creates a new error with a code and formatted message.
@@ -287,7 +295,7 @@ func (i *Interpreter) loadState(filename string) error {
 }
 
 // NewInterpreter creates a new interpreter instance with all opcodes registered.
-func NewInterpreter(outputView io.Writer, angleModeView *tview.TextView, variablesTable *tview.Table, stackTable *tview.Table, inputField *tview.InputField) *Interpreter {
+func NewInterpreter(app *tview.Application, appFlex *tview.Flex, outputView io.Writer, angleModeView *tview.TextView, variablesTable *tview.Table, stackTable *tview.Table, inputField *tview.InputField) *Interpreter {
 	interp := &Interpreter{
 		stack:       make([]interface{}, 0),
 		opcodes:     make(map[string]func(*Interpreter) error),
@@ -303,6 +311,8 @@ func NewInterpreter(outputView io.Writer, angleModeView *tview.TextView, variabl
 		suggestions:     []string{},                         // Initialize empty suggestions
 		suggestionIndex: -1,                                 // No suggestion selected initially
 		inputField:      inputField,
+		app:             app,
+		appFlex:         appFlex,
 	}
 	interp.clrEdit = true
 	interp.variables["_echo_mode"] = true
@@ -402,6 +412,7 @@ func (i *Interpreter) registerOpcodes() {
 	i.opcodes[";"] = nil
 	i.opcodes["delete"] = nil
 	i.opcodes["edit"] = nil
+	i.opcodes["editfile"] = nil
 	i.opcodes["see"] = nil
 	i.opcodes["("] = nil
 	i.opcodes[")"] = nil
@@ -990,6 +1001,9 @@ func (i *Interpreter) registerOpcodes() {
 		if err != nil {
 			return err
 		}
+		if strings.Contains(name, " ") {
+			return i.newError(55, name)
+		}
 		val, err := i.pop()
 		if err != nil {
 			return err
@@ -1540,6 +1554,7 @@ func (i *Interpreter) registerOpcodes() {
   if, loop, while, break, continue, index: Control flow
   store, load, edit, free: Variable storage (can store and execute code blocks)
   see [var:|word:]<name>: See the definition of a variable/word
+  editfile <filename>: Edit an RPN file in a multi-line editor
   delete [var:|word:]<name>: Delete a variable/word (e.g. delete myvar)
   len, mid, upper, lower, str, val: String manipulation
   ., print, cr, cls: Output
@@ -1561,6 +1576,82 @@ Internal variables (use with 'set' and 'unset'):
 		fmt.Fprintln(i.outputView, helpText)
 		return nil
 	}
+}
+
+func (i *Interpreter) enterFileEditMode(filePath string) {
+	i.editingFile = true
+	i.currentEditFile = filePath
+
+	content, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		// if file does not exist, create it
+		if os.IsNotExist(err) {
+			content = []byte{}
+		} else {
+			fmt.Fprintf(i.outputView, "[red]Error reading file %s: %v[white]\n", filePath, err)
+			return
+		}
+	}
+
+	textArea := tview.NewTextArea()
+	textArea.SetText(string(content), true)
+	textArea.SetBorder(true)
+	textArea.SetTitle(fmt.Sprintf("Editing %s | Ctrl-S to Save & Exec | Esc to Cancel", filepath.Base(filePath)))
+
+	textArea.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Key() {
+		case tcell.KeyCtrlS:
+			i.exitFileEditMode(textArea, true)
+			return nil
+		case tcell.KeyEsc:
+			i.exitFileEditMode(textArea, false)
+			return nil
+		}
+		return event
+	})
+
+	// Replace input field with text area
+	i.appFlex.RemoveItem(i.inputField)
+	i.appFlex.AddItem(textArea, 0, 1, true)
+	i.app.SetFocus(textArea)
+}
+
+func (i *Interpreter) exitFileEditMode(textArea *tview.TextArea, save bool) {
+	i.editingFile = false
+
+	// Get content before removing the text area
+	content := textArea.GetText()
+
+	// Restore input field
+	i.appFlex.RemoveItem(textArea)
+	i.appFlex.AddItem(i.inputField, 3, 0, true)
+	i.app.SetFocus(i.inputField)
+
+	if save {
+		err := ioutil.WriteFile(i.currentEditFile, []byte(content), 0644)
+		if err != nil {
+			fmt.Fprintf(i.outputView, "[red]Error writing file %s: %v[white]\n", i.currentEditFile, err)
+		} else {
+			fmt.Fprintf(i.outputView, "[green]File '%s' saved.[white]\n", filepath.Base(i.currentEditFile))
+			// Execute the content
+			go i.app.QueueUpdateDraw(func() {
+				if err := i.Eval(content); err != nil {
+					fmt.Fprintln(i.outputView, err.Error())
+				}
+				// Update views
+				showStackType := false
+				if val, ok := i.variables["_stack_type"].(bool); ok {
+					showStackType = val
+				}
+				updateStackView(i.stackTable, i.stack, showStackType)
+			})
+		}
+	} else {
+		fmt.Fprintf(i.outputView, "[yellow]Edit cancelled.[white]\n")
+	}
+
+	i.currentEditFile = ""
+	i.inputField.SetText("") // Clear input field after editing
 }
 
 // execute runs a sequence of tokens through the interpreter.
@@ -1771,6 +1862,40 @@ func (i *Interpreter) execute(tokens []string) error {
 			}
 			j++ // consume the name token
 			continue
+		}
+
+		// Handle editfile command
+		if token == "editfile" {
+			if i.inputField == nil {
+				// Silently ignore in non-interactive mode
+				j++ // consume the name token
+				continue
+			}
+			if len(tokens) < j+2 {
+				return i.newError(53)
+			}
+			filename := tokens[j+1]
+			// If the name is a quoted string, unquote it
+			if len(filename) > 1 && filename[0] == '"' && filename[len(filename)-1] == '"' {
+				filename = filename[1 : len(filename)-1]
+			}
+			// Add .rpn extension if not present
+			if filepath.Ext(filename) == "" {
+				filename += ".rpn"
+			}
+
+			home, err := os.UserHomeDir()
+			if err != nil {
+				return i.newError(40, err)
+			}
+			rpnPath := filepath.Join(home, rpnDir)
+			fullPath := filepath.Join(rpnPath, filename)
+
+			// No need to check for existence, enterFileEditMode handles it
+			i.enterFileEditMode(fullPath)
+			i.clrEdit = false
+			j++ // consume the name token
+			return nil // Return to avoid further execution in the line
 		}
 
 		// Handle edit command
@@ -1990,110 +2115,90 @@ func (i *Interpreter) generateSuggestions(input string) []string {
 	return suggestions
 }
 
-// tokenize splits the input string into tokens, handling quoted strings.
+// handleTabCompletion handles the tab key press for autocompletion.
+func (i *Interpreter) handleTabCompletion() {
+	currentText := i.inputField.GetText()
+	parts := strings.Fields(currentText)
+	if len(parts) == 0 {
+		return
+	}
+
+	lastPart := parts[len(parts)-1]
+
+	if i.suggestionIndex == -1 || !strings.HasPrefix(strings.ToLower(lastPart), strings.ToLower(i.suggestions[i.suggestionIndex])) {
+		i.suggestions = i.generateSuggestions(lastPart)
+		i.suggestionIndex = -1
+	}
+
+	if len(i.suggestions) > 0 {
+		i.suggestionIndex = (i.suggestionIndex + 1) % len(i.suggestions)
+		newText := strings.Join(parts[:len(parts)-1], " ")
+		if newText != "" {
+			newText += " "
+		}
+		newText += i.suggestions[i.suggestionIndex]
+		i.inputField.SetText(newText)
+	}
+}
+
+// tokenize splits a line of code into tokens.
 func (i *Interpreter) tokenize(line string) ([]string, error) {
 	var tokens []string
-	inQuote := false
-	var currentToken strings.Builder
+	inString := false
+	inBlock := 0
+	current := ""
 
 	for _, r := range line {
-		if inQuote {
-			currentToken.WriteRune(r)
-			if r == '"' {
-				tokens = append(tokens, currentToken.String())
-				currentToken.Reset()
-				inQuote = false
-			}
-			continue
-		}
-
 		switch {
-		case r == '"':
-			if currentToken.Len() > 0 {
-				tokens = append(tokens, currentToken.String())
-				currentToken.Reset()
+		case unicode.IsSpace(r) && !inString && inBlock == 0:
+			if current != "" {
+				tokens = append(tokens, current)
+				current = ""
 			}
-			inQuote = true
-			currentToken.WriteRune(r)
-		case unicode.IsSpace(r):
-			if currentToken.Len() > 0 {
-				tokens = append(tokens, currentToken.String())
-				currentToken.Reset()
+		case r == '"' && inBlock == 0:
+			current += string(r)
+			if inString {
+				tokens = append(tokens, current)
+				current = ""
 			}
-		case r == '{' || r == '}':
-			if currentToken.Len() > 0 {
-				tokens = append(tokens, currentToken.String())
-				currentToken.Reset()
+			inString = !inString
+		case r == '{' && !inString:
+			if current != "" {
+				tokens = append(tokens, current)
 			}
-			tokens = append(tokens, string(r))
+			tokens = append(tokens, "{")
+			current = ""
+		case r == '}' && !inString:
+			if current != "" {
+				tokens = append(tokens, current)
+			}
+			tokens = append(tokens, "}")
+			current = ""
 		default:
-			currentToken.WriteRune(r)
+			current += string(r)
 		}
 	}
 
-	if inQuote {
+	if current != "" {
+		tokens = append(tokens, current)
+	}
+
+	if inString {
 		return nil, i.newError(36)
 	}
 
-	if currentToken.Len() > 0 {
-		tokens = append(tokens, currentToken.String())
-	}
 	return tokens, nil
 }
 
-func formatWord(wordName string, wordDef []string) string {
+func formatWord(name string, definition []string) string {
 	var builder strings.Builder
-	builder.WriteString(fmt.Sprintf(": %s", wordName))
+	builder.WriteString(": " + name + " ")
 
-	indentLevel := 1
-	indentUnit := "  "
+	// Simple formatting: join with spaces.
+	// For more complex formatting, you might need a more sophisticated approach.
+	builder.WriteString(strings.Join(definition, " "))
 
-	// Group consecutive non-block tokens to print on the same line
-	for i := 0; i < len(wordDef); {
-		// Find the next block token '{' or '}'
-		nextBlockIndex := -1
-		for j := i; j < len(wordDef); j++ {
-			if wordDef[j] == "{" || wordDef[j] == "}" {
-				nextBlockIndex = j
-				break
-			}
-		}
-
-		// If there are non-block tokens before the next block token (or at the end)
-		if nextBlockIndex != i {
-			end := len(wordDef)
-			if nextBlockIndex != -1 {
-				end = nextBlockIndex
-			}
-
-			// Join and print the non-block tokens
-			if i < end {
-				builder.WriteString("\n" + strings.Repeat(indentUnit, indentLevel))
-				builder.WriteString(strings.Join(wordDef[i:end], " "))
-			}
-			i = end
-		}
-
-		// Handle the block token
-		if i < len(wordDef) {
-			tok := wordDef[i]
-			if tok == "{" {
-				builder.WriteString("\n" + strings.Repeat(indentUnit, indentLevel))
-				builder.WriteString("{")
-				indentLevel++
-			} else if tok == "}" {
-				indentLevel--
-				if indentLevel < 1 {
-					indentLevel = 1
-				}
-				builder.WriteString("\n" + strings.Repeat(indentUnit, indentLevel))
-				builder.WriteString("}")
-			}
-			i++
-		}
-	}
-
-	builder.WriteString("\n;")
+	builder.WriteString(" ;")
 	return builder.String()
 }
 
@@ -2172,7 +2277,9 @@ func main() {
 	inputField.SetFieldTextColor(tcell.ColorGreen)
 	inputField.SetFieldBackgroundColor(tcell.ColorBlack)
 
-	interpreter := NewInterpreter(outputView, angleModeView, variablesTable, stackTable, inputField)
+	appFlex := tview.NewFlex()
+
+	interpreter := NewInterpreter(app, appFlex, outputView, angleModeView, variablesTable, stackTable, inputField)
 
 	interpreter.opcodes["exit"] = func(i *Interpreter) error {
 		if val, ok := interpreter.variables["_exit_save"].(bool); ok && val { // save to default ?
@@ -2205,30 +2312,30 @@ func main() {
 				if initVal, ok := interpreter.variables["init"]; ok {
 
 					var initBlock []string
-                    if blockStr, isStringSlice := initVal.([]string); isStringSlice {
-                        initBlock = blockStr
-                    } else if initStr, isString := initVal.(string); isString {
-                        // If it's a string, try to tokenize it as a block
-                        if strings.HasPrefix(initStr, "{") && strings.HasSuffix(initStr, "}") {
-                            innerContent := strings.TrimSpace(initStr[1 : len(initStr)-1])
-                            tempTokens, err := interpreter.tokenize(innerContent)
-                            if err == nil {
-                                initBlock = tempTokens
-                            } else {
-                                fmt.Fprintf(outputView, "Warning: 'init' variable is a string that looks like a block, but failed to tokenize: %v\n", err)
-                            }
-                        }
-                    } else if blockIface, isInterfaceSlice := initVal.([]interface{}); isInterfaceSlice {
-                        convertedBlock := make([]string, len(blockIface))
-                        for k, v := range blockIface {
-                            if s, isString := v.(string); isString {
-                                convertedBlock[k] = s
-                            } else {
-                                convertedBlock[k] = fmt.Sprintf("%v", v)
-                            }
-                        }
-                        initBlock = convertedBlock
-                    }
+					if blockStr, isStringSlice := initVal.([]string); isStringSlice {
+						initBlock = blockStr
+					} else if initStr, isString := initVal.(string); isString {
+						// If it's a string, try to tokenize it as a block
+						if strings.HasPrefix(initStr, "{") && strings.HasSuffix(initStr, "}") {
+							innerContent := strings.TrimSpace(initStr[1 : len(initStr)-1])
+							tempTokens, err := interpreter.tokenize(innerContent)
+							if err == nil {
+								initBlock = tempTokens
+							} else {
+								fmt.Fprintf(outputView, "Warning: 'init' variable is a string that looks like a block, but failed to tokenize: %v\n", err)
+							}
+						}
+					} else if blockIface, isInterfaceSlice := initVal.([]interface{}); isInterfaceSlice {
+						convertedBlock := make([]string, len(blockIface))
+						for k, v := range blockIface {
+							if s, isString := v.(string); isString {
+								convertedBlock[k] = s
+							} else {
+								convertedBlock[k] = fmt.Sprintf("%v", v)
+							}
+						}
+						initBlock = convertedBlock
+					}
 
 					if initBlock != nil {
 						fmt.Fprintln(outputView, "Executing 'init' variable...")
@@ -2268,31 +2375,28 @@ func main() {
 		hideInternalVars = val
 	}
 	updateVariablesView(variablesTable, interpreter.variables, showVarsValue, hideInternalVars, outputView)
-	// Initial words view update
 	updateWordsView(interpreter.wordsTable, interpreter.words)
 
 	inputField.SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyEnter {
-			line := inputField.GetText()
-			if line == "" {
+			text := inputField.GetText()
+			if text == "" {
 				return
 			}
-			if len(history) == 0 || history[len(history)-1] != line {
-				history = append(history, line)
-			}
+
+			// Add to history
+			history = append(history, text)
 			historyIndex = len(history)
 			saveHistory()
 
+			// Echo the command if echo mode is on
 			if val, ok := interpreter.variables["_echo_mode"].(bool); ok && val {
-				fmt.Fprintf(outputView, ">> %s\n", line)
+				fmt.Fprintf(outputView, "[yellow]>> %s[white]\n", text)
 			}
-			if err := interpreter.Eval(line); err != nil {
-				fmt.Fprintf(outputView, "[red]%s[-]\n", err.Error())
-			} else {
-				interpreter.variables["_last_error"] = float64(0)
-			}
-			if interpreter.clrEdit {
-				inputField.SetText("")
+
+			// Execute the command
+			if err := interpreter.Eval(text); err != nil {
+				fmt.Fprintln(outputView, err.Error())
 			}
 
 			// Update views
@@ -2301,6 +2405,7 @@ func main() {
 				showStackType = val
 			}
 			updateStackView(stackTable, interpreter.stack, showStackType)
+
 			showVarsValue := true
 			if val, ok := interpreter.variables["_vars_value"].(bool); ok {
 				showVarsValue = val
@@ -2310,34 +2415,17 @@ func main() {
 				hideInternalVars = val
 			}
 			updateVariablesView(variablesTable, interpreter.variables, showVarsValue, hideInternalVars, outputView)
-			updateAngleAndEchoModeView(interpreter)
 			updateWordsView(interpreter.wordsTable, interpreter.words)
-		}
-	})
 
-	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Key() {
-		case tcell.KeyEscape:
-			// Non-blocking send to the interrupted channel
-			select {
-			case interpreter.interrupted <- struct{}{}:
-			default:
+			// Clear the input field
+			if interpreter.clrEdit {
+				inputField.SetText("")
 			}
-			return nil
-		default:
-			return event
 		}
 	})
 
 	inputField.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
-		case tcell.KeyEscape:
-			// Non-blocking send to the interrupted channel
-			select {
-			case interpreter.interrupted <- struct{}{}:
-			default:
-			}
-			return nil
 		case tcell.KeyUp:
 			if historyIndex > 0 {
 				historyIndex--
@@ -2354,37 +2442,19 @@ func main() {
 			}
 			return nil
 		case tcell.KeyTab:
-			currentText := inputField.GetText()
-			lastSpace := strings.LastIndexFunc(currentText, unicode.IsSpace)
-			var currentWord string
-			if lastSpace == -1 {
-				currentWord = currentText
-			} else {
-				currentWord = currentText[lastSpace+1:]
-			}
-
-			// If we are already cycling through suggestions or a new word is being typed
-			if len(interpreter.suggestions) > 0 && strings.HasPrefix(interpreter.suggestions[0], currentWord) {
-				interpreter.suggestionIndex = (interpreter.suggestionIndex + 1) % len(interpreter.suggestions)
-				// Replace only the last word with the suggestion
-				newText := currentText[:len(currentText)-len(currentWord)] + interpreter.suggestions[interpreter.suggestionIndex]
-				inputField.SetText(newText)
-			} else {
-				// Generate new suggestions based on the current word
-				interpreter.suggestions = interpreter.generateSuggestions(currentWord)
-				if len(interpreter.suggestions) > 0 {
-					interpreter.suggestionIndex = 0
-					// Replace only the last word with the suggestion
-					newText := currentText[:len(currentText)-len(currentWord)] + interpreter.suggestions[interpreter.suggestionIndex]
-					inputField.SetText(newText)
-				}
+			interpreter.handleTabCompletion()
+			return nil
+		case tcell.KeyCtrlC:
+			// Send an interrupt signal to the interpreter
+			select {
+			case interpreter.interrupted <- struct{}{}:
+			default:
 			}
 			return nil
-		default:
-			// Any other key press resets the suggestion state
-			interpreter.suggestions = []string{}
-			interpreter.suggestionIndex = -1
 		}
+		// Reset suggestion index if any other key is pressed
+		interpreter.suggestionIndex = -1
+		interpreter.suggestions = []string{}
 		return event
 	})
 
@@ -2399,7 +2469,7 @@ func main() {
 		AddItem(outputView, 0, 2, false).
 		AddItem(rightPanel, 0, 1, false)
 
-	appFlex := tview.NewFlex().SetDirection(tview.FlexRow).
+	appFlex.SetDirection(tview.FlexRow).
 		AddItem(mainFlex, 0, 1, false).
 		AddItem(inputField, 3, 0, true)
 
@@ -2412,7 +2482,7 @@ func main() {
 }
 
 // updateVariablesView clears and repopulates the variables table.
-func updateVariablesView(variablesTable *tview.Table, variables map[string]interface{}, showValue, hideInternal bool, outputView *tview.TextView) {
+func updateVariablesView(variablesTable *tview.Table, variables map[string]interface{}, showValue, hideInternal bool, outputView io.Writer) {
 	variablesTable.Clear()
 	variablesTable.SetTitle(fmt.Sprintf("Variables (%d)", len(variables)))
 	variablesTable.SetCell(0, 0, tview.NewTableCell("Variable").SetSelectable(false).SetTextColor(tcell.ColorYellow))
@@ -2423,7 +2493,7 @@ func updateVariablesView(variablesTable *tview.Table, variables map[string]inter
 	// Sort keys for consistent order
 	keys := make([]string, 0, len(variables))
 	for k := range variables {
-		if !hideInternal && strings.HasPrefix(k, "_") {
+		if hideInternal && strings.HasPrefix(k, "_") {
 			continue
 		}
 		keys = append(keys, k)

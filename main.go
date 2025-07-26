@@ -1619,7 +1619,7 @@ func (i *Interpreter) enterFileEditMode(filePath string) {
 	}
 
 	textArea := tview.NewTextArea()
-	textArea.SetText(string(content), true)
+	textArea.SetText(string(content), false)
 	textArea.SetBorder(true)
 	textArea.SetTitle(fmt.Sprintf("Editing %s | Ctrl-S to Save & Exec | Esc to Cancel", filepath.Base(filePath)))
 

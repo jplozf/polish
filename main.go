@@ -86,6 +86,7 @@ var errors = []Error{
 	{Code: 53, Message: "editfile: missing filename"},
 	{Code: 54, Message: "editfile: file not found: %s"},
 	{Code: 55, Message: "variable names cannot contain spaces: '%s'"},
+	{Code: 56, Message: "cannot define local variable '%s' in global scope"},
 }
 
 // History variables
@@ -152,7 +153,8 @@ func saveHistory() {
 type Interpreter struct {
 	stack       []interface{}
 	opcodes     map[string]func(*Interpreter) error
-	variables   map[string]interface{}
+	variables   map[string]interface{} // Global variables
+	scopeStack  []map[string]interface{}
 	words       map[string][]string
 	interrupted chan struct{}
 
@@ -300,6 +302,7 @@ func NewInterpreter(app *tview.Application, appFlex *tview.Flex, outputView io.W
 		stack:       make([]interface{}, 0),
 		opcodes:     make(map[string]func(*Interpreter) error),
 		variables:   make(map[string]interface{}),
+		scopeStack:  make([]map[string]interface{}, 0),
 		words:       make(map[string][]string),
 		interrupted: make(chan struct{}, 1),
 
@@ -314,6 +317,7 @@ func NewInterpreter(app *tview.Application, appFlex *tview.Flex, outputView io.W
 		app:             app,
 		appFlex:         appFlex,
 	}
+	interp.scopeStack = append(interp.scopeStack, interp.variables) // Add global scope
 	interp.clrEdit = true
 	interp.variables["_echo_mode"] = true
 	interp.variables["_degree_mode"] = false
@@ -1009,6 +1013,16 @@ func (i *Interpreter) registerOpcodes() {
 			return err
 		}
 
+		if strings.HasPrefix(name, "$") {
+			if len(i.scopeStack) > 1 {
+				currentScope := i.scopeStack[len(i.scopeStack)-1]
+				currentScope[name] = val
+			} else {
+				return i.newError(56, name)
+			}
+			return nil
+		}
+
 		// Prevent defining variables with the same name as an opcode
 		if _, exists := i.opcodes[name]; exists {
 			return i.newError(11, name)
@@ -1040,6 +1054,17 @@ func (i *Interpreter) registerOpcodes() {
 		if err != nil {
 			return err
 		}
+
+		if strings.HasPrefix(name, "$") {
+			for j := len(i.scopeStack) - 1; j >= 1; j-- {
+				if val, ok := i.scopeStack[j][name]; ok {
+					i.push(val)
+					return nil
+				}
+			}
+			return i.newError(15, name)
+		}
+
 		val, ok := i.variables[name]
 		if !ok {
 			return i.newError(15, name)
@@ -2012,13 +2037,19 @@ func (i *Interpreter) execute(tokens []string) error {
 				return i.newError(15, varName)
 			}
 		} else if wordDef, exists := i.words[token]; exists { // Check for user-defined words (default)
-			if err := i.execute(wordDef); err != nil {
+			i.scopeStack = append(i.scopeStack, make(map[string]interface{}))
+			err := i.execute(wordDef)
+			i.scopeStack = i.scopeStack[:len(i.scopeStack)-1]
+			if err != nil {
 				return i.newError(31, token, err)
 			}
 		} else if val, exists := i.variables[token]; exists { // Check for variables
 			// If the variable holds a block, execute it
 			if blockStr, ok := val.([]string); ok {
-				if err := i.execute(blockStr); err != nil {
+				i.scopeStack = append(i.scopeStack, make(map[string]interface{}))
+				err := i.execute(blockStr)
+				i.scopeStack = i.scopeStack[:len(i.scopeStack)-1]
+				if err != nil {
 					return i.newError(33, token, err)
 				}
 			} else if blockIface, ok := val.([]interface{}); ok {
@@ -2031,7 +2062,10 @@ func (i *Interpreter) execute(tokens []string) error {
 						return i.newError(32, token)
 					}
 				}
-				if err := i.execute(convertedBlock); err != nil {
+				i.scopeStack = append(i.scopeStack, make(map[string]interface{}))
+				err := i.execute(convertedBlock)
+				i.scopeStack = i.scopeStack[:len(i.scopeStack)-1]
+				if err != nil {
 					return i.newError(33, token, err)
 				}
 			} else if blockStr, ok := val.(string); ok && strings.HasPrefix(blockStr, "{") && strings.HasSuffix(blockStr, "}") {
@@ -2041,7 +2075,10 @@ func (i *Interpreter) execute(tokens []string) error {
 				if err != nil {
 					return i.newError(33, token, fmt.Errorf("failed to tokenize string block: %w", err))
 				}
-				if err := i.execute(tempTokens); err != nil {
+				i.scopeStack = append(i.scopeStack, make(map[string]interface{}))
+				err = i.execute(tempTokens)
+				i.scopeStack = i.scopeStack[:len(i.scopeStack)-1]
+				if err != nil {
 					return i.newError(33, token, err)
 				}
 			} else {
@@ -2493,7 +2530,7 @@ func updateVariablesView(variablesTable *tview.Table, variables map[string]inter
 	// Sort keys for consistent order
 	keys := make([]string, 0, len(variables))
 	for k := range variables {
-		if hideInternal && strings.HasPrefix(k, "_") {
+		if !hideInternal && strings.HasPrefix(k, "_") {
 			continue
 		}
 		keys = append(keys, k)

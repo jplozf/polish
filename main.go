@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 	"unicode"
+	"regexp"
 	_ "embed"
 
 	"github.com/gdamore/tcell/v2"
@@ -1636,7 +1637,7 @@ func (i *Interpreter) registerOpcodes() {
 
 	// Help
 	i.opcodes["help"] = func(i *Interpreter) error {
-		fmt.Fprintln(i.outputView, readmeContent)
+		fmt.Fprintln(i.outputView, CleanMarkdown(readmeContent))
 		return nil
 	}
 }
@@ -2673,4 +2674,64 @@ func updateWordsView(wordsTable *tview.Table, words map[string][]string) {
 		row++
 	}
 	wordsTable.ScrollToBeginning()
+}
+
+// CleanMarkdown takes a string containing markdown and removes all syntax,
+// returning the raw text. It uses a series of regular expressions to
+// systematically strip out markdown elements.
+func CleanMarkdown(markdown string) string {
+	// The order of these replacements is important.
+
+	// 1. Remove multiline fenced code blocks (e.g., ```go ... ```)
+	re := regexp.MustCompile("(?s)```.*?```")
+	result := re.ReplaceAllString(markdown, "")
+
+	// 2. Remove HTML tags
+	re = regexp.MustCompile("<[^>]*>")
+	result = re.ReplaceAllString(result, "")
+
+	// 3. Remove images, keeping the alt text (e.g., ![alt text](url))
+	re = regexp.MustCompile(`!\[(.*?)\]\(.*?\)`)
+	result = re.ReplaceAllString(result, "$1")
+
+	// 4. Remove links, keeping the link text (e.g., [link text](url))
+	re = regexp.MustCompile(`\[(.*?)\]\(.*?\)`)
+	result = re.ReplaceAllString(result, "$1")
+
+	// 5. Remove headings (e.g., #, ##, etc.)
+	re = regexp.MustCompile(`(?m)^#{1,6}\s+`)
+	result = re.ReplaceAllString(result, "")
+
+	// 6. Remove blockquotes (e.g., > quote)
+	re = regexp.MustCompile(`(?m)^\>\s?`)
+	result = re.ReplaceAllString(result, "")
+
+	// 7. Remove list markers (e.g., *, -, +, 1.)
+	re = regexp.MustCompile(`(?m)^\s*(\*|\+|-|[0-9]+\.)\s+`)
+	result = re.ReplaceAllString(result, "")
+
+	// 8. Remove horizontal rules (e.g., ---, ***, ___)
+	re = regexp.MustCompile(`(?m)^\s*(\*|-|_){3,}\s*$`)
+	result = re.ReplaceAllString(result, "")
+
+	// 9. Remove table formatting (pipes)
+	re = regexp.MustCompile(`\|`)
+	result = re.ReplaceAllString(result, " ")
+
+	// 10. Remove inline styling: bold, italic, strikethrough, and inline code
+	re = regexp.MustCompile("(\\*\\*|__|\\*|_|~~|`)")
+	result = re.ReplaceAllString(result, "")
+
+	// 11. Clean up consecutive newlines (more than two) into just two
+	re = regexp.MustCompile(`\n{3,}`)
+	result = re.ReplaceAllString(result, "\n\n")
+
+	// 12. Clean up multiple spaces into a single space
+	re = regexp.MustCompile(`\s{2,}`)
+	result = re.ReplaceAllString(result, " ")
+
+	// 13. Trim leading/trailing whitespace
+	result = strings.TrimSpace(result)
+
+	return result
 }

@@ -40,7 +40,7 @@ Upon running `./polish`, you will be presented with an interactive command-line 
 
 *   Enter numbers to push them onto the stack.
 *   Enter operators or commands to perform actions on the stack.
-*   Press `Ctrl+C` to exit the interpreter.
+*   Enter `exit`, `quit` or `bye` to exit the interpreter.
 
 ## Syntax and Examples
 

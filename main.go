@@ -16,10 +16,15 @@ import (
 	"sync"
 	"time"
 	"unicode"
+	_ "embed"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
+
+var myPrompt = ":) "
+//go:embed README.md
+var readmeContent string
 
 var ErrBreak = fmt.Errorf("break")
 var ErrContinue = fmt.Errorf("continue")
@@ -1631,34 +1636,7 @@ func (i *Interpreter) registerOpcodes() {
 
 	// Help
 	i.opcodes["help"] = func(i *Interpreter) error {
-		helpText := `Available commands:
-  +, -, *, /, %: Basic arithmetic
-  sqrt, pow, nroot, sq, log, pow10, ln, factorial, exp, int, frac, asin, acos, atan, atan2: Math functions
-  dup, drop, swap, depth, clear: Stack manipulation
-  ==, !=, >, <, >=, <=: Comparison operators
-  if, loop, while, break, continue, index: Control flow
-  store, load, edit, free: Variable storage (can store and execute code blocks)
-  see [var:|word:]<name>: See the definition of a variable/word
-  editfile <filename>: Edit an RPN file in a multi-line editor
-  delete [var:|word:]<name>: Delete a variable/word (e.g. delete myvar)
-  len, mid, upper, lower, str, val: String manipulation
-  ., print, cr, cls: Output
-  save, restore, import, export, list: State management
-  words: Display all defined words, variables and core commands
-  time, date, year, month, day, hour, minute, second: Time and date functions
-  pi, e, phi, rand: Mathematical constants and random number generation
-  true, false, and, or, not, xor, toggle: Boolean operations
-  help: Display this help message
-  ( ... ): Comments (can be nested)
-Internal variables (use with 'set' and 'unset'):
-  _echo_mode: Toggle echoing of input commands
-  _degree_mode: Set angle mode (true for degrees, false for radians)
-  _vars_value: Toggle visibility of variable values
-  _stack_type: Toggle display of stack value or type
-  _hidden_vars: Toggle visibility of internal variables (starting with _)
-  _exit_save: Automatically save state to default.json on exit
-`
-		fmt.Fprintln(i.outputView, helpText)
+		fmt.Fprintln(i.outputView, readmeContent)
 		return nil
 	}
 }
@@ -2376,7 +2354,7 @@ func main() {
 	variablesTable := tview.NewTable().SetBorders(false)
 	variablesTable.SetBorder(true).SetTitle("Variables")
 
-	inputField := tview.NewInputField().SetLabel(">> ")
+	inputField := tview.NewInputField().SetLabel(myPrompt)
 	inputField.SetBorder(true).SetTitle("Input")
 	inputField.SetFieldTextColor(tcell.ColorGreen)
 	inputField.SetFieldBackgroundColor(tcell.ColorBlack)
@@ -2552,7 +2530,7 @@ func main() {
 
 		// Echo the command if echo mode is on.
 		if val, ok := interpreter.variables["_echo_mode"].(bool); ok && val {
-			fmt.Fprintf(outputView, "[yellow]>> %s[white]\n", text)
+			fmt.Fprintf(outputView, "[yellow]%s%s[white]\n", myPrompt, text)
 		}
 
 		// Clear the input field and send the command to the interpreter loop.

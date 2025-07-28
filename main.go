@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 
@@ -66,7 +67,7 @@ var errors = []Error{
 	{Code: 33, Message: "error executing variable as word '%s': %w"},
 	{Code: 34, Message: "unrecognized token: %s"},
 	{Code: 35, Message: "unmatched ')'"},
-	{Code: 36, Message: `unmatched "`},
+	{Code: 36, Message: "unmatched quote"},
 	{Code: 37, Message: "unmatched '('"},
 	{Code: 38, Message: "expected '{' to start block"},
 	{Code: 39, Message: "unmatched '{'"},
@@ -150,6 +151,8 @@ func saveHistory() {
 	writer.Flush()
 }
 
+
+
 // Interpreter holds the state of our RPN calculator.
 type Interpreter struct {
 	stack       []interface{}
@@ -174,6 +177,11 @@ type Interpreter struct {
 	currentEditFile string // Stores the path of the file being edited
 	app             *tview.Application // Reference to the tview application
 	appFlex         *tview.Flex        // Reference to the main application flex layout
+
+	originalPrompt string      // Stores the original prompt of the input field
+	inputChan      chan string // Channel to communicate input from prompt command
+	promptActive   bool        // Flag to indicate if prompt command is active
+	promptMutex    sync.Mutex  // Mutex to protect promptActive
 }
 
 // newError creates a new error with a code and formatted message.
@@ -317,6 +325,9 @@ func NewInterpreter(app *tview.Application, appFlex *tview.Flex, outputView io.W
 		inputField:      inputField,
 		app:             app,
 		appFlex:         appFlex,
+		originalPrompt:  inputField.GetLabel(), // Store the initial prompt
+		inputChan:       make(chan string, 1), // Initialize the channel
+		promptActive:    false,                // Not active initially
 	}
 	interp.scopeStack = append(interp.scopeStack, interp.variables) // Add global scope
 	interp.clrEdit = true
@@ -1258,6 +1269,40 @@ func (i *Interpreter) registerOpcodes() {
 		return nil
 	}
 
+	// Prompt command
+	i.opcodes["prompt"] = func(i *Interpreter) error {
+		promptMsg, err := i.popString()
+		if err != nil {
+			return err
+		}
+
+		// Store original prompt and set new one
+		i.originalPrompt = i.inputField.GetLabel()
+
+		i.promptMutex.Lock()
+		i.promptActive = true
+		i.promptMutex.Unlock()
+
+		// Update UI on the main goroutine
+		i.app.QueueUpdateDraw(func() {
+			i.inputField.SetLabel(promptMsg + " ")
+			i.inputField.SetText("")
+		})
+
+		// Block until input is received from the UI thread.
+		input := <-i.inputChan
+
+		// Push the received input onto the stack.
+		i.push(input)
+
+		// The prompt is no longer active.
+		i.promptMutex.Lock()
+		i.promptActive = false
+		i.promptMutex.Unlock()
+
+		return nil
+	}
+
 	i.opcodes["words"] = func(i *Interpreter) error {
 		var allWords []string
 
@@ -2120,6 +2165,7 @@ func (i *Interpreter) execute(tokens []string) error {
 				}
 			}
 		}
+		time.Sleep(time.Millisecond) // Yield to other goroutines
 	}
 	if commentLevel > 0 {
 		return i.newError(37)
@@ -2139,6 +2185,7 @@ func (i *Interpreter) Eval(line string) error {
 	if err != nil {
 		return err
 	}
+
 	return i.execute(tokens)
 }
 
@@ -2316,8 +2363,8 @@ func main() {
 	outputView := tview.NewTextView().SetDynamicColors(true).SetRegions(true).SetWrap(true).SetWordWrap(true)
 	outputView.SetBorder(true).SetTitle(appName + " v" + version)
 	outputView.SetChangedFunc(func() {
-		outputView.ScrollToEnd()
 		app.Draw()
+		outputView.ScrollToEnd()
 	})
 
 	stackTable := tview.NewTable().SetBorders(false)
@@ -2434,51 +2481,83 @@ func main() {
 	updateVariablesView(variablesTable, interpreter.variables, showVarsValue, hideInternalVars, outputView)
 	updateWordsView(interpreter.wordsTable, interpreter.words)
 
-	inputField.SetDoneFunc(func(key tcell.Key) {
-		if key == tcell.KeyEnter {
-			text := inputField.GetText()
-			if text == "" {
-				return
-			}
+	// Channel for passing commands from the input field to the interpreter goroutine.
+	commandChan := make(chan string, 1)
 
-			// Add to history
-			history = append(history, text)
-			historyIndex = len(history)
-			saveHistory()
-
-			// Echo the command if echo mode is on
-			if val, ok := interpreter.variables["_echo_mode"].(bool); ok && val {
-				fmt.Fprintf(outputView, "[yellow]>> %s[white]\n", text)
-			}
-
-			// Execute the command
+	// Single goroutine to handle all interpreter execution.
+	go func() {
+		for text := range commandChan {
+			// Execute the command.
 			if err := interpreter.Eval(text); err != nil {
-				fmt.Fprintln(outputView, err.Error())
+				app.QueueUpdateDraw(func() {
+					fmt.Fprintln(outputView, err.Error())
+				})
 			}
 
-			// Update views
-			showStackType := false
-			if val, ok := interpreter.variables["_stack_type"].(bool); ok {
-				showStackType = val
-			}
-			updateStackView(stackTable, interpreter.stack, showStackType)
-
-			showVarsValue := true
-			if val, ok := interpreter.variables["_vars_value"].(bool); ok {
-				showVarsValue = val
-			}
-			hideInternalVars := true
-			if val, ok := interpreter.variables["_hidden_vars"].(bool); ok {
-				hideInternalVars = val
-			}
-			updateVariablesView(variablesTable, interpreter.variables, showVarsValue, hideInternalVars, outputView)
-			updateWordsView(interpreter.wordsTable, interpreter.words)
-
-			// Clear the input field
-			if interpreter.clrEdit {
-				inputField.SetText("")
-			}
+			// Update views on the main goroutine after execution.
+			app.QueueUpdateDraw(func() {
+				showStackType := false
+				if val, ok := interpreter.variables["_stack_type"].(bool); ok {
+					showStackType = val
+				}
+				updateStackView(stackTable, interpreter.stack, showStackType)
+				showVarsValue := true
+				if val, ok := interpreter.variables["_vars_value"].(bool); ok {
+					showVarsValue = val
+				}
+				hideInternalVars := true
+				if val, ok := interpreter.variables["_hidden_vars"].(bool); ok {
+					hideInternalVars = val
+				}
+				updateVariablesView(variablesTable, interpreter.variables, showVarsValue, hideInternalVars, outputView)
+				updateWordsView(interpreter.wordsTable, interpreter.words)
+			})
 		}
+	}()
+
+	inputField.SetDoneFunc(func(key tcell.Key) {
+		if key != tcell.KeyEnter {
+			return
+		}
+
+		text := inputField.GetText()
+
+		interpreter.promptMutex.Lock()
+		isActive := interpreter.promptActive
+		interpreter.promptMutex.Unlock()
+
+		if isActive {
+			// A prompt is active, so send the input to the interpreter's
+			// dedicated input channel and reset the UI.
+			interpreter.inputChan <- text
+			inputField.SetLabel(interpreter.originalPrompt)
+			inputField.SetText("")
+			return
+		}
+
+		// This is a regular command.
+		if text == "" && len(history) > 0 && historyIndex < len(history) {
+			text = history[historyIndex] // Use current history item if input is empty
+		}
+		if text == "" {
+			return
+		}
+
+		// Add to history.
+		if len(history) == 0 || history[len(history)-1] != text {
+			history = append(history, text)
+		}
+		historyIndex = len(history)
+		saveHistory()
+
+		// Echo the command if echo mode is on.
+		if val, ok := interpreter.variables["_echo_mode"].(bool); ok && val {
+			fmt.Fprintf(outputView, "[yellow]>> %s[white]\n", text)
+		}
+
+		// Clear the input field and send the command to the interpreter loop.
+		inputField.SetText("")
+		commandChan <- text
 	})
 
 	inputField.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
@@ -2493,8 +2572,8 @@ func main() {
 			if historyIndex < len(history)-1 {
 				historyIndex++
 				inputField.SetText(history[historyIndex])
-			} else {
-				historyIndex = len(history)
+			} else if historyIndex == len(history)-1 {
+				historyIndex++
 				inputField.SetText("")
 			}
 			return nil
@@ -2505,6 +2584,7 @@ func main() {
 			// Send an interrupt signal to the interpreter
 			select {
 			case interpreter.interrupted <- struct{}{}:
+				fmt.Fprintln(outputView, "[yellow]Execution interrupted.[white]")
 			default:
 			}
 			return nil

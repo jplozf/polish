@@ -1660,7 +1660,7 @@ func (i *Interpreter) enterFileEditMode(filePath string) {
 	textArea := tview.NewTextArea()
 	textArea.SetText(string(content), false)
 	textArea.SetBorder(true)
-	textArea.SetTitle(fmt.Sprintf("Editing %s | Ctrl-S to Save & Exec | Esc to Cancel", filepath.Base(filePath)))
+	textArea.SetTitle(fmt.Sprintf("Editing %s | Ctrl-S to Save | Esc to Cancel", filepath.Base(filePath)))
 
 	textArea.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
@@ -2273,16 +2273,61 @@ func (i *Interpreter) tokenize(line string) ([]string, error) {
 	return tokens, nil
 }
 
-func formatWord(name string, definition []string) string {
-	var builder strings.Builder
-	builder.WriteString(": " + name + " ")
+func formatWord(wordName string, wordDef []string) string {                                                                                      
+  var builder strings.Builder                                                                                                                     
+  builder.WriteString(fmt.Sprintf(": %s", wordName))                                                                                              
+                                                                                                                                                 
+  indentLevel := 1                                                                                                                                
+  indentUnit := "  "                                                                                                                              
+                                                                                                                                                 
+  // Group consecutive non-block tokens to print on the same line                                                                                 
+  for i := 0; i < len(wordDef); {                                                                                                                 
+    // Find the next block token '{' or '}'                                                                                                       
+    nextBlockIndex := -1                                                                                                                          
+    for j := i; j < len(wordDef); j++ {                                                                                                           
+      if wordDef[j] == "{" || wordDef[j] == "}" {                                                                                                 
+        nextBlockIndex = j                                                                                                                        
+        break                                                                                                                                     
+      }                                                                                                                                           
+    }                                                                                                                                             
+                                                                                                                                                 
+    // If there are non-block tokens before the next block token (or at the end)                                                                  
+    if nextBlockIndex != i {                                                                                                                      
+      end := len(wordDef)                                                                                                                         
+      if nextBlockIndex != -1 {                                                                                                                   
+        end = nextBlockIndex                                                                                                                      
+      }                                                                                                                                           
+                                                                                                                                                 
+      // Join and print the non-block tokens                                                                                                      
+      if i < end {                                                                                                                                
+        builder.WriteString("\n" + strings.Repeat(indentUnit, indentLevel))                                                                       
+        builder.WriteString(strings.Join(wordDef[i:end], " "))                                                                                    
+      }                                                                                                                                           
+      i = end                                                                                                                                     
+    }                                                                                                                                             
 
-	// Simple formatting: join with spaces.
-	// For more complex formatting, you might need a more sophisticated approach.
-	builder.WriteString(strings.Join(definition, " "))
-
-	builder.WriteString(" ;")
-	return builder.String()
+                                                                                                                                                  
+    // Handle the block token                                                                                                                     
+    if i < len(wordDef) {                                                                                                                         
+      tok := wordDef[i]                                                                                                                           
+      if tok == "{" {                                                                                                                             
+        builder.WriteString("\n" + strings.Repeat(indentUnit, indentLevel))                                                                       
+        builder.WriteString("{")                                                                                                                  
+        indentLevel++                                                                                                                             
+      } else if tok == "}" {                                                                                                                      
+        indentLevel--                                                                                                                             
+        if indentLevel < 1 {                                                                                                                      
+          indentLevel = 1                                                                                                                         
+        }                                                                                                                                         
+        builder.WriteString("\n" + strings.Repeat(indentUnit, indentLevel))                                                                       
+        builder.WriteString("}")                                                                                                                  
+      }                                                                                                                                           
+      i++                                                                                                                                         
+    }                                                                                                                                             
+  }                                                                                                                                               
+                                                                                                                                                  
+  builder.WriteString("\n;")                                                                                                                      
+  return builder.String()                                                                                                                         
 }
 
 // parseBlock finds a matching '}' for a '{' and returns the inner tokens.

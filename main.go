@@ -2558,7 +2558,7 @@ func main() {
 		case tcell.KeyTab:
 			interpreter.handleTabCompletion()
 			return nil
-		case tcell.KeyCtrlC:
+		case tcell.KeyEsc:
 			// Send an interrupt signal to the interpreter
 			select {
 			case interpreter.interrupted <- struct{}{}:
@@ -2571,6 +2571,15 @@ func main() {
 		interpreter.suggestionIndex = -1
 		interpreter.suggestions = []string{}
 		return event
+	})
+
+	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Key() {
+		case tcell.KeyCtrlC:
+			return nil
+		default:
+			return event
+		}
 	})
 
 	// Layout

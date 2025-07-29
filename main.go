@@ -157,7 +157,41 @@ func saveHistory() {
 	writer.Flush()
 }
 
+// SetFocusables sets the focusable elements for the interpreter.
+func (i *Interpreter) SetFocusables(elements ...tview.Primitive) {
+	i.focusables = elements
+	i.currentFocus = 0 // Default to the first element
+}
 
+// CycleFocus moves the focus to the next element in the focusables slice.
+func (i *Interpreter) CycleFocus() {
+	if len(i.focusables) == 0 {
+		return
+	}
+
+	// Helper function to set border color
+	setBorderColor := func(p tview.Primitive, color tcell.Color) {
+		switch v := p.(type) {
+		case *tview.InputField:
+			v.SetBorderColor(color)
+		case *tview.TextView:
+			v.SetBorderColor(color)
+		case *tview.Table:
+			v.SetBorderColor(color)
+		case *tview.TextArea:
+			v.SetBorderColor(color)
+		}
+	}
+
+	// Reset border of the old focused item
+	setBorderColor(i.focusables[i.currentFocus], tview.Styles.BorderColor)
+
+	i.currentFocus = (i.currentFocus + 1) % len(i.focusables)
+	i.app.SetFocus(i.focusables[i.currentFocus])
+
+	// Set border of the new focused item
+	setBorderColor(i.focusables[i.currentFocus], tcell.ColorRed)
+}
 
 // Interpreter holds the state of our RPN calculator.
 type Interpreter struct {
@@ -188,6 +222,9 @@ type Interpreter struct {
 	inputChan      chan string // Channel to communicate input from prompt command
 	promptActive   bool        // Flag to indicate if prompt command is active
 	promptMutex    sync.Mutex  // Mutex to protect promptActive
+
+	focusables      []tview.Primitive // Slice to hold focusable elements
+	currentFocus    int               // Index of the currently focused element
 }
 
 // newError creates a new error with a code and formatted message.
@@ -1678,6 +1715,8 @@ func (i *Interpreter) enterFileEditMode(filePath string) {
 	i.appFlex.RemoveItem(i.inputField)
 	i.appFlex.AddItem(textArea, 0, 1, true)
 	i.app.SetFocus(textArea)
+	// Update focusables
+	i.SetFocusables(textArea, i.outputView.(tview.Primitive), i.angleModeView, i.stackTable, i.variablesTable, i.wordsTable)
 }
 
 func (i *Interpreter) exitFileEditMode(textArea *tview.TextArea, save bool) {
@@ -1690,6 +1729,9 @@ func (i *Interpreter) exitFileEditMode(textArea *tview.TextArea, save bool) {
 	i.appFlex.RemoveItem(textArea)
 	i.appFlex.AddItem(i.inputField, 3, 0, true)
 	i.app.SetFocus(i.inputField)
+
+	// Restore focusables
+	i.SetFocusables(i.inputField, i.outputView.(tview.Primitive), i.angleModeView, i.stackTable, i.variablesTable, i.wordsTable)
 
 	if save {
 		err := ioutil.WriteFile(i.currentEditFile, []byte(content), 0644)
@@ -2391,17 +2433,17 @@ func main() {
 		outputView.ScrollToEnd()
 	})
 
-	stackTable := tview.NewTable().SetBorders(false)
+	stackTable := tview.NewTable().SetBorders(false).SetSelectable(true, false)
 	stackTable.SetBorder(true).SetTitle("Stack")
 
 	angleModeView := tview.NewTextView().SetTextAlign(tview.AlignCenter).SetTextColor(tcell.ColorGreen)
 	angleModeView.SetBorder(true).SetTitle("Mode")
 
-	variablesTable := tview.NewTable().SetBorders(false)
+	variablesTable := tview.NewTable().SetBorders(false).SetSelectable(true, false)
 	variablesTable.SetBorder(true).SetTitle("Variables")
 
 	inputField := tview.NewInputField().SetLabel(myPrompt)
-	inputField.SetBorder(true).SetTitle("Input")
+	inputField.SetBorder(true).SetTitle("F2 : Change panel")
 	inputField.SetFieldTextColor(tcell.ColorGreen)
 	inputField.SetFieldBackgroundColor(tcell.ColorBlack)
 
@@ -2419,7 +2461,8 @@ func main() {
 	interpreter.opcodes["quit"] = interpreter.opcodes["exit"]
 	interpreter.opcodes["bye"] = interpreter.opcodes["exit"]
 
-	interpreter.wordsTable.SetBorder(true).SetTitle("Words")
+	interpreter.wordsTable.SetBorder(true)
+	interpreter.wordsTable.SetTitle("Words")
 
 	// Initial angle mode display
 	updateAngleAndEchoModeView(interpreter)
@@ -2619,13 +2662,16 @@ func main() {
 		return event
 	})
 
+	// Global key bindings
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Key() {
-		case tcell.KeyCtrlC:
+		if event.Key() == tcell.KeyF2 {
+			interpreter.CycleFocus()
 			return nil
-		default:
-			return event
 		}
+		if event.Key() == tcell.KeyCtrlC {
+			return nil
+		}
+		return event
 	})
 
 	// Layout
@@ -2645,10 +2691,13 @@ func main() {
 
 	app.SetRoot(appFlex, true).SetFocus(inputField)
 
+	// Set initial focusables after all UI elements are created
+	interpreter.SetFocusables(inputField, outputView, angleModeView, stackTable, variablesTable, interpreter.wordsTable)
+
 	if err := app.Run(); err != nil {
 		panic(err)
 	}
-	fmt.Println(appName + " v" + version + " - https://github.com/jplozf/polish")
+	fmt.Println(myPrompt + appName + " v" + version + " - https://github.com/jplozf/polish")
 }
 
 // updateVariablesView clears and repopulates the variables table.

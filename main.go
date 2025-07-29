@@ -204,6 +204,7 @@ type Interpreter struct {
 
 	outputView      io.Writer
 	angleModeView   *tview.TextView   // New field for angle mode display
+	clockView       *tview.TextView   // New field for clock display
 	variablesTable  *tview.Table      // New field for variables display
 	stackTable      *tview.Table      // New field for stack display
 	wordsTable      *tview.Table      // New field for words display
@@ -291,6 +292,15 @@ func updateAngleAndEchoModeView(i *Interpreter) {
 	fmt.Fprintf(i.angleModeView, "%s | ECHO %s", mode, echoStatus)
 }
 
+// updateClockView updates the clock display with the current time.
+func updateClockView(i *Interpreter) {
+	if i.clockView == nil {
+		return
+	}
+	currentTime := time.Now().Format("15:04:05") // HH:MM:SS
+	i.clockView.SetText(currentTime)
+}
+
 // loadState loads the interpreter state from a file.
 func (i *Interpreter) loadState(filename string) error {
 	home, err := os.UserHomeDir()
@@ -349,7 +359,7 @@ func (i *Interpreter) loadState(filename string) error {
 }
 
 // NewInterpreter creates a new interpreter instance with all opcodes registered.
-func NewInterpreter(app *tview.Application, appFlex *tview.Flex, outputView io.Writer, angleModeView *tview.TextView, variablesTable *tview.Table, stackTable *tview.Table, inputField *tview.InputField) *Interpreter {
+func NewInterpreter(app *tview.Application, appFlex *tview.Flex, outputView io.Writer, angleModeView *tview.TextView, clockView *tview.TextView, variablesTable *tview.Table, stackTable *tview.Table, inputField *tview.InputField) *Interpreter {
 	interp := &Interpreter{
 		stack:       make([]interface{}, 0),
 		opcodes:     make(map[string]func(*Interpreter) error),
@@ -360,6 +370,7 @@ func NewInterpreter(app *tview.Application, appFlex *tview.Flex, outputView io.W
 
 		outputView:      outputView,
 		angleModeView:   angleModeView,
+		clockView:       clockView,
 		variablesTable:  variablesTable,
 		stackTable:      stackTable,
 		wordsTable:      tview.NewTable().SetBorders(false), // Initialize wordsTable
@@ -2439,6 +2450,9 @@ func main() {
 	angleModeView := tview.NewTextView().SetTextAlign(tview.AlignCenter).SetTextColor(tcell.ColorGreen)
 	angleModeView.SetBorder(true).SetTitle("Mode")
 
+	clockView := tview.NewTextView().SetTextAlign(tview.AlignCenter).SetTextColor(tcell.ColorBlue)
+	clockView.SetBorder(true).SetTitle("Time")
+
 	variablesTable := tview.NewTable().SetBorders(false).SetSelectable(true, false)
 	variablesTable.SetBorder(true).SetTitle("Variables")
 
@@ -2449,7 +2463,7 @@ func main() {
 
 	appFlex := tview.NewFlex()
 
-	interpreter := NewInterpreter(app, appFlex, outputView, angleModeView, variablesTable, stackTable, inputField)
+	interpreter := NewInterpreter(app, appFlex, outputView, angleModeView, clockView, variablesTable, stackTable, inputField)
 
 	interpreter.opcodes["exit"] = func(i *Interpreter) error {
 		if val, ok := interpreter.variables["_exit_save"].(bool); ok && val { // save to default ?
@@ -2466,6 +2480,17 @@ func main() {
 
 	// Initial angle mode display
 	updateAngleAndEchoModeView(interpreter)
+
+	// Start goroutine to update clock every second
+	go func() {
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			app.QueueUpdateDraw(func() {
+				updateClockView(interpreter)
+			})
+		}
+	}()
 
 	// Attempt to load and execute default.json
 	home, err := os.UserHomeDir()
@@ -2684,10 +2709,11 @@ func main() {
 
 	// Layout
 	rightPanel := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(angleModeView, 3, 0, false).
-		AddItem(stackTable, 0, 1, false).
-		AddItem(variablesTable, 0, 1, false).
-		AddItem(interpreter.wordsTable, 0, 1, false)
+        AddItem(angleModeView, 3, 0, false).
+        AddItem(clockView, 3, 0, false).
+        AddItem(stackTable, 0, 1, false).
+        AddItem(variablesTable, 0, 1, false).
+        AddItem(interpreter.wordsTable, 0, 1, false)
 
 	mainFlex := tview.NewFlex().
 		AddItem(outputView, 0, 2, false).
@@ -2700,7 +2726,7 @@ func main() {
 	app.SetRoot(appFlex, true).SetFocus(inputField)
 
 	// Set initial focusables after all UI elements are created
-	interpreter.SetFocusables(inputField, outputView, angleModeView, stackTable, variablesTable, interpreter.wordsTable)
+	interpreter.SetFocusables(inputField, outputView, stackTable, variablesTable, interpreter.wordsTable)
 
 	if err := app.Run(); err != nil {
 		panic(err)

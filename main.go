@@ -2664,11 +2664,19 @@ func main() {
 
 	// Global key bindings
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyF2 {
+		switch event.Key() {
+		case tcell.KeyF1:
+			// Execute the "help" command
+			commandChan <- "help"
+			return nil
+		case tcell.KeyF2:
 			interpreter.CycleFocus()
 			return nil
-		}
-		if event.Key() == tcell.KeyCtrlC {
+		case tcell.KeyF12:
+			// Execute the "exit" command
+			commandChan <- "exit"
+			return nil
+		case tcell.KeyCtrlC:
 			return nil
 		}
 		return event

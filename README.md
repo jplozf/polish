@@ -34,13 +34,15 @@ To build and run Polish, you need Go installed on your system.
 
 ## Usage
 
-Upon running `./polish`, you will be presented with an interactive command-line interface. Type RPN commands and press Enter to execute them.
+Upon running `./polish`, you will be presented with an interactive Text User Interface (TUI). Type RPN commands and press Enter to execute them.
 
 ### Basic Interaction
 
 *   Enter numbers to push them onto the stack.
 *   Enter operators or commands to perform actions on the stack.
-*   Enter `exit`, `quit` or `bye` to exit the interpreter.
+*   Enter `exit`, `quit`, `bye` or press the `F12` key to exit the interpreter.
+*   Enter `help` or press the `F1` key to show this help.
+*   Press the `F2` key to switch the current panel.
 
 ## Syntax and Examples
 
@@ -146,6 +148,7 @@ false { "This won't run." . cr } { "This will run." . cr } if
 *   `"string" lower`: Converts string to lowercase.
 *   `"value" val`: Tries to convert a string to a number or boolean.
 *   `value str`: Converts any value to its string representation.
+*   `"string" prompt`: Displays the string in the input box and waits for an input.
 
 ```rpn
 "hello" len       ( Result: 5 )

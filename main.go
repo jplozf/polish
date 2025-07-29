@@ -190,7 +190,7 @@ func (i *Interpreter) CycleFocus() {
 	i.app.SetFocus(i.focusables[i.currentFocus])
 
 	// Set border of the new focused item
-	setBorderColor(i.focusables[i.currentFocus], tcell.ColorRed)
+	setBorderColor(i.focusables[i.currentFocus], tcell.ColorYellow)
 }
 
 // Interpreter holds the state of our RPN calculator.
@@ -2415,8 +2415,8 @@ func updateStackView(stackTable *tview.Table, stack []interface{}, showType bool
 
 func main() {
 	var welcome = appName + " v" + version + " - RPN Interpreter written in Go.\n"
-	welcome += "Type 'exit', 'quit' or 'bye' to exit.\n"
-	welcome += "Type 'help' to have a summary of commands.\n\n"
+	welcome += "Type 'exit', 'quit', 'bye' or press the 'F12' key to exit.\n"
+	welcome += "Type 'help' or press the 'F1' key to have a summary of commands.\n\n"
 
 	app := tview.NewApplication()
 
@@ -2818,6 +2818,9 @@ func CleanMarkdown(markdown string) string {
 
 	// 8. Trim leading/trailing whitespace.
 	result = strings.TrimSpace(result)
+
+	// 9. Add a final newline.
+	result += "\n"
 
 	return result
 }

@@ -794,6 +794,28 @@ func (i *Interpreter) registerOpcodes() {
 		return nil
 	}
 
+	i.opcodes["rot"] = func(i *Interpreter) error {
+		if len(i.stack) < 3 {
+			return i.newError(1) // Stack underflow
+		}
+		c, err := i.pop()
+		if err != nil {
+			return err
+		}
+		b, err := i.pop()
+		if err != nil {
+			return err
+		}
+		a, err := i.pop()
+		if err != nil {
+			return err
+		}
+		i.push(b)
+		i.push(c)
+		i.push(a)
+		return nil
+	}
+
 	// Comparison operators
 	i.opcodes["=="] = func(i *Interpreter) error {
 		b, err := i.pop()
@@ -1718,7 +1740,7 @@ func (i *Interpreter) enterFileEditMode(filePath string) {
 		}
 		fromRow, fromCol, _, _ := textArea.GetCursor()
 		// The row and column are 0-indexed, so we add 1 for display.
-		title := fmt.Sprintf("Editing %s%s | L: %d, C: %d | Ctrl-S to Save | Esc to Cancel", filepath.Base(filePath), dirtyFlag, fromRow+1, fromCol)
+		title := fmt.Sprintf("File %s%s | L: %d, C: %d | Ctrl-S to Save | Esc to Cancel", filepath.Base(filePath), dirtyFlag, fromRow+1, fromCol+1)
 		textArea.SetTitle(title)
 	}
 

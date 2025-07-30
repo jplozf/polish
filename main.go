@@ -562,7 +562,7 @@ func (i *Interpreter) registerOpcodes() {
 		i.push(a / b)
 		return nil
 	}
-	i.opcodes["%"] = func(i *Interpreter) error {
+	i.opcodes["mod"] = func(i *Interpreter) error {
 		b, err := i.popFloat()
 		if err != nil {
 			return err

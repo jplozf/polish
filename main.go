@@ -1836,7 +1836,7 @@ func (i *Interpreter) enterFileEditMode(filePath string) {
 	i.appFlex.AddItem(textArea, 0, 1, true)
 	i.app.SetFocus(textArea)
 	// Update focusables
-	i.SetFocusables(textArea, i.outputView.(tview.Primitive), i.angleModeView, i.stackTable, i.variablesTable, i.wordsTable)
+	i.SetFocusables(textArea, i.outputView.(tview.Primitive), i.stackTable, i.variablesTable, i.wordsTable)
 }
 
 func (i *Interpreter) exitFileEditMode(textArea *tview.TextArea, save bool) {

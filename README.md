@@ -5,7 +5,7 @@ Polish is a powerful and interactive Reverse Polish Notation (RPN) interpreter, 
 ## Features
 
 *   **Basic Arithmetic & Math Functions:** Perform standard calculations, trigonometry, logarithms, and more.
-*   **Stack-based Operations:** Manipulate data directly on the stack with commands like `dup`, `drop`, and `swap`.
+*   **Stack-based Operations:** Manipulate data directly on the stack with commands like `dup`, `drop`, `rot` and `swap`.
 *   **Variables & Words (Functions):** Define and manage variables and custom words (functions) for reusable code.
 *   **Control Flow:** Implement conditional logic (`if`) and loops (`loop`, `while`).
 *   **String Manipulation:** Work with strings, including length, substrings, and case conversion.
@@ -63,6 +63,7 @@ Numbers are pushed onto the stack. Operators pop arguments, perform calculations
 *   `dup`: Duplicates the top item on the stack.
 *   `drop`: Removes the top item from the stack.
 *   `swap`: Swaps the top two items on the stack.
+*   `rot`: Rotates the top three items on the stack.
 *   `clear`: Clears the entire stack.
 *   `depth`: Pushes the current stack depth onto the stack.
 
@@ -70,6 +71,7 @@ Numbers are pushed onto the stack. Operators pop arguments, perform calculations
 1 2 dup   ( Stack: 1 2 2 )
 1 2 drop  ( Stack: 1 )
 1 2 swap  ( Stack: 2 1 )
+1 2 3 rot ( Stack: 3 1 2 )
 1 2 3 clear ( Stack: empty )
 1 2 3 depth ( Stack: 1 2 3 3 )
 ```
@@ -149,6 +151,9 @@ false { "This won't run." . cr } { "This will run." . cr } if
 *   `"value" val`: Tries to convert a string to a number or boolean.
 *   `value str`: Converts any value to its string representation.
 *   `"string" prompt`: Displays the string in the input box and waits for an input.
+*   `"string" code`: Pushes the UTF-8 code of the first char of the string.
+*   `"value" char`: Pushes the character having this UTF-8 code.
+*   `"value" emit`: Displays the character having this UTF-8 code.
 
 ```rpn
 "hello" len       ( Result: 5 )
@@ -157,6 +162,9 @@ false { "This won't run." . cr } { "This will run." . cr } if
 "WORLD" lower     ( Result: "world" )
 "123" val         ( Result: 123 )
 true str          ( Result: "true" )
+"A" code          ( Result: 65)
+65 char           ( Result: "A")
+65 emit           ( Display: A)
 ```
 
 ### File and State Management
@@ -199,7 +207,7 @@ These variables start with `_` and control interpreter behavior. Use `set`, `uns
 *   `_stack_type`: `true` to show stack item types, `false` to show values.
 *   `_hidden_vars`: `true` to show internal variables in the variables view, `false` to hide them.
 *   `_exit_save`: `true` to automatically save state to `default.json` on exit.
-*   `_last_x`: Stores the last value popped from the stack.
+*   `_last_x`: Stores the last value popped from the stack. This is a read-only variable.
 
 ```rpn
 "_echo_mode" toggle
@@ -232,6 +240,8 @@ The interpreter provides specific error messages for various issues, such as sta
 ```
 
 ## Contributing
+
+Special thanks to [rivo/tview](https://github.com/rivo/tview) for his wonderful TUI library. 
 
 Contributions are welcome! Please feel free to open issues or pull requests on the GitHub repository.
 

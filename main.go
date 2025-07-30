@@ -95,6 +95,7 @@ var errors = []Error{
 	{Code: 55, Message: "variable names cannot contain spaces: '%s'"},
 	{Code: 56, Message: "cannot define local variable '%s' in global scope"},
 	{Code: 57, Message: "semicolon out of context"},
+	{Code: 58, Message: "invalid character input: %s"},
 }
 
 // History variables
@@ -1719,6 +1720,40 @@ func (i *Interpreter) registerOpcodes() {
 			return err
 		}
 		i.push(fmt.Sprintf("%v", v))
+		return nil
+	}
+
+	// UTF-8 commands
+	i.opcodes["char->code"] = func(i *Interpreter) error {
+		s, err := i.popString()
+		if err != nil {
+			return err
+		}
+		if len(s) == 0 {
+			return i.newError(58, "empty string")
+		}
+		runeValue := []rune(s)[0]
+		i.push(float64(runeValue))
+		return nil
+	}
+
+	i.opcodes["code->char"] = func(i *Interpreter) error {
+		code, err := i.popFloat()
+		if err != nil {
+			return err
+		}
+		runeValue := rune(code)
+		i.push(string(runeValue))
+		return nil
+	}
+
+	i.opcodes["emit"] = func(i *Interpreter) error {
+		code, err := i.popFloat()
+		if err != nil {
+			return err
+		}
+		runeValue := rune(code)
+		fmt.Fprint(i.outputView, string(runeValue))
 		return nil
 	}
 

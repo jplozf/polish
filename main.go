@@ -562,18 +562,34 @@ func (i *Interpreter) registerOpcodes() {
 		i.push(a / b)
 		return nil
 	}
-	i.opcodes["mod"] = func(i *Interpreter) error {
-		b, err := i.popFloat()
-		if err != nil {
-			return err
+			i.opcodes["mod"] = func(i *Interpreter) error {
+			b, err := i.popFloat()
+			if err != nil {
+				return err
+			}
+			a, err := i.popFloat()
+			if err != nil {
+				return err
+			}
+			i.push(math.Mod(a, b))
+			return nil
 		}
-		a, err := i.popFloat()
-		if err != nil {
-			return err
+
+		i.opcodes["%"] = func(i *Interpreter) error {
+			total, err := i.popFloat()
+			if err != nil {
+				return err
+			}
+			value, err := i.popFloat()
+			if err != nil {
+				return err
+			}
+			if total == 0 {
+				return i.newError(2) // Division by zero
+			}
+			i.push((value / total) * 100)
+			return nil
 		}
-		i.push(math.Mod(a, b))
-		return nil
-	}
 
 	// Math functions
 	i.opcodes["sqrt"] = func(i *Interpreter) error {

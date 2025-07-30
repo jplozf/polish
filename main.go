@@ -216,6 +216,7 @@ type Interpreter struct {
 
 	editingFile     bool   // Flag to indicate if currently in file editing mode
 	currentEditFile string // Stores the path of the file being edited
+	fileDirty       bool   // Flag to indicate if the file has been modified
 	app             *tview.Application // Reference to the tview application
 	appFlex         *tview.Flex        // Reference to the main application flex layout
 
@@ -1693,6 +1694,7 @@ func (i *Interpreter) registerOpcodes() {
 func (i *Interpreter) enterFileEditMode(filePath string) {
 	i.editingFile = true
 	i.currentEditFile = filePath
+	i.fileDirty = false // Reset dirty flag
 
 	content, err := ioutil.ReadFile(filePath)
 	if err != nil {
@@ -1708,9 +1710,30 @@ func (i *Interpreter) enterFileEditMode(filePath string) {
 	textArea := tview.NewTextArea()
 	textArea.SetText(string(content), false)
 	textArea.SetBorder(true)
-	textArea.SetTitle(fmt.Sprintf("Editing %s | Ctrl-S to Save | Esc to Cancel", filepath.Base(filePath)))
+
+	updateTitle := func() {
+		dirtyFlag := ""
+		if i.fileDirty {
+			dirtyFlag = "*"
+		}
+		fromRow, fromCol, _, _ := textArea.GetCursor()
+		// The row and column are 0-indexed, so we add 1 for display.
+		title := fmt.Sprintf("Editing %s%s | L: %d, C: %d | Ctrl-S to Save | Esc to Cancel", filepath.Base(filePath), dirtyFlag, fromRow+1, fromCol)
+		textArea.SetTitle(title)
+	}
+
+	updateTitle() // Initial title update
+
+	textArea.SetChangedFunc(func() {
+		i.fileDirty = true
+		updateTitle()
+	})
 
 	textArea.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		// We update the title on every key press.
+		// This is not ideal, but it's the simplest way to keep the cursor position updated.
+		defer updateTitle()
+
 		switch event.Key() {
 		case tcell.KeyCtrlS:
 			i.exitFileEditMode(textArea, true)
@@ -1732,6 +1755,7 @@ func (i *Interpreter) enterFileEditMode(filePath string) {
 
 func (i *Interpreter) exitFileEditMode(textArea *tview.TextArea, save bool) {
 	i.editingFile = false
+	i.fileDirty = false
 
 	// Get content before removing the text area
 	content := textArea.GetText()

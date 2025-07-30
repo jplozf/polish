@@ -1724,7 +1724,7 @@ func (i *Interpreter) registerOpcodes() {
 	}
 
 	// UTF-8 commands
-	i.opcodes["char"] = func(i *Interpreter) error {
+	i.opcodes["code"] = func(i *Interpreter) error {
 		s, err := i.popString()
 		if err != nil {
 			return err

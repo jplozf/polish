@@ -96,6 +96,7 @@ var errors = []Error{
 	{Code: 56, Message: "cannot define local variable '%s' in global scope"},
 	{Code: 57, Message: "semicolon out of context"},
 	{Code: 58, Message: "invalid character input: %s"},
+	{Code: 59, Message: "string bounds out of range"},
 }
 
 // History variables
@@ -1203,8 +1204,12 @@ func (i *Interpreter) registerOpcodes() {
 		if err != nil {
 			return err
 		}
-		i.push(s[int(start):int(start+length)])
-		return nil
+		if int(start) >= 0 && int(start) < len(s) && int(start+length) >=0 && int(start+length) <= len(s) {
+			i.push(s[int(start):int(start+length)])
+			return nil
+		} else {
+			return i.newError(59)
+		}
 	}
 
 	// Output
@@ -1416,8 +1421,22 @@ func (i *Interpreter) registerOpcodes() {
 		}
 
 		sort.Strings(allWords)
-
-		fmt.Fprintln(i.outputView, strings.Join(allWords, " "))
+		// Display in color
+		for _, word := range allWords {
+			if _, exists := i.opcodes[word]; exists {
+                        	word = "[yellow]" + word + "[white]"
+			}
+			if _, exists := i.variables[word]; exists {
+				if strings.HasPrefix(word, "_") {
+					word = "[green]" + word + "[white]"
+				} else {
+					word = "[blue]" + word + "[white]"
+				}
+			}
+			fmt.Fprint(i.outputView, word + " ")
+                }
+		fmt.Fprint(i.outputView, "\n")
+		// fmt.Fprintln(i.outputView, strings.Join(allWords, " "))
 		return nil
 	}
 
@@ -2560,7 +2579,7 @@ func main() {
 	angleModeView := tview.NewTextView().SetTextAlign(tview.AlignCenter).SetTextColor(tcell.ColorGreen)
 	angleModeView.SetBorder(true).SetTitle("Mode")
 
-	clockView := tview.NewTextView().SetTextAlign(tview.AlignCenter).SetTextColor(tcell.ColorBlue)
+	clockView := tview.NewTextView().SetTextAlign(tview.AlignCenter).SetTextColor(tcell.ColorGreen)
 	clockView.SetBorder(true).SetTitle("Time")
 
 	variablesTable := tview.NewTable().SetBorders(false).SetSelectable(true, false)

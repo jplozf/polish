@@ -1724,7 +1724,7 @@ func (i *Interpreter) registerOpcodes() {
 	}
 
 	// UTF-8 commands
-	i.opcodes["char->code"] = func(i *Interpreter) error {
+	i.opcodes["char"] = func(i *Interpreter) error {
 		s, err := i.popString()
 		if err != nil {
 			return err
@@ -1737,7 +1737,7 @@ func (i *Interpreter) registerOpcodes() {
 		return nil
 	}
 
-	i.opcodes["code->char"] = func(i *Interpreter) error {
+	i.opcodes["char"] = func(i *Interpreter) error {
 		code, err := i.popFloat()
 		if err != nil {
 			return err
@@ -1754,6 +1754,19 @@ func (i *Interpreter) registerOpcodes() {
 		}
 		runeValue := rune(code)
 		fmt.Fprint(i.outputView, string(runeValue))
+		return nil
+	}
+
+	// Math functions
+	i.opcodes["inv"] = func(i *Interpreter) error {
+		x, err := i.popFloat()
+		if err != nil {
+			return err
+		}
+		if x == 0 {
+			return i.newError(2) // Division by zero
+		}
+		i.push(1 / x)
 		return nil
 	}
 

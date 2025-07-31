@@ -164,7 +164,7 @@ false { "This won't run." . cr } { "This will run." . cr } if
 true str          ( Result: "true" )
 "A" code          ( Result: 65)
 65 char           ( Result: "A")
-65 emit           ( Print: A)
+65 emit           ( Print : A)
 ```
 
 ### File and State Management
@@ -208,6 +208,8 @@ These variables start with `_` and control interpreter behavior. Use `set`, `uns
 *   `_hidden_vars`: `true` to show internal variables in the variables view, `false` to hide them.
 *   `_exit_save`: `true` to automatically save state to `default.json` on exit.
 *   `_last_x`: Stores the last value popped from the stack. This is a read-only variable.
+*   `_last_error`: Contains the code of the last error. This is a read-only variable.
+*   `_error`: `true` if the last command resulted in an error, `false` otherwise. This is a read-only variable.
 
 ```rpn
 "_echo_mode" toggle
@@ -231,6 +233,7 @@ Comments start with `(` and end with `)`. They can be nested.
 
 The interpreter provides specific error messages for various issues, such as stack underflow, type errors, undefined variables, and syntax errors.
 
+*   `_error`: `true` if the last command resulted in an error, `false` otherwise. This is a read-only variable.
 *   `_last_error`: Contains the code of the last error. This is a read-only variable.
 
 ```rpn

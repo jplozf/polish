@@ -235,6 +235,7 @@ type Interpreter struct {
 
 // newError creates a new error with a code and formatted message.
 func (i *Interpreter) newError(code int, args ...interface{}) error {
+	i.variables["_error"] = true
 	for _, e := range errors {
 		if e.Code == code {
 			i.variables["_last_error"] = float64(code)
@@ -397,6 +398,7 @@ func NewInterpreter(app *tview.Application, appFlex *tview.Flex, outputView io.W
 	interp.variables["_hidden_vars"] = false
 	interp.variables["_exit_save"] = false
 	interp.variables["_last_error"] = float64(0)
+	interp.variables["_error"] = false
 	interp.variables["_last_x"] = nil // Initialize _last_x
 	interp.loopIndex = -1 // Initialize loop index to -1 (no active loop)
 	interp.registerOpcodes()
@@ -1922,6 +1924,7 @@ func compareStringSlices(s1, s2 []string) bool {
 
 // execute runs a sequence of tokens through the interpreter.
 func (i *Interpreter) execute(tokens []string) error {
+	i.variables["_error"] = false
 	i.clrEdit = true
 	commentLevel := 0
 	for j := 0; j < len(tokens); j++ {

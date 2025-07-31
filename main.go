@@ -27,6 +27,8 @@ var myPrompt = ":) "
 //go:embed README.md
 var readmeContent string
 
+var mainWordRegex = regexp.MustCompile(`:\s+main\s+[^;]*;`) // Regex to detect ": main ... ;"
+
 var ErrBreak = fmt.Errorf("break")
 var ErrContinue = fmt.Errorf("continue")
 
@@ -1275,16 +1277,21 @@ func (i *Interpreter) registerOpcodes() {
 			return i.newError(46, fullPath, err)
 		}
 
-		err = i.Eval(string(content))
+		// Check if the imported content defines a "main" word
+		mainDefinedInImport := mainWordRegex.MatchString(string(content))
+
+		err = i.Eval(string(content)) // Execute the content of the imported file
 		if err != nil {
 			return err
 		}
 
-		// After importing, check for and execute a "main" word if it exists
-		if mainWord, ok := i.words["main"]; ok {
-			err := i.execute(mainWord)
-			if err != nil {
-				return i.newError(31, "main", err) // Error executing word 'main'
+		// After importing, execute a "main" word if it was defined in the imported file
+		if mainDefinedInImport {
+			if newMainWord, mainExistsAfter := i.words["main"]; mainExistsAfter {
+				err := i.execute(newMainWord)
+				if err != nil {
+					return i.newError(31, "main", err) // Error executing word 'main'
+				}
 			}
 		}
 		return nil
@@ -1900,6 +1907,19 @@ func (i *Interpreter) exitFileEditMode(textArea *tview.TextArea, save bool) {
 	i.inputField.SetText("") // Clear input field after editing
 }
 
+// compareStringSlices compares two string slices for equality.
+func compareStringSlices(s1, s2 []string) bool {
+	if len(s1) != len(s2) {
+		return false
+	}
+	for i := range s1 {
+		if s1[i] != s2[i] {
+			return false
+		}
+	}
+	return true
+}
+
 // execute runs a sequence of tokens through the interpreter.
 func (i *Interpreter) execute(tokens []string) error {
 	i.clrEdit = true
@@ -1988,6 +2008,7 @@ func (i *Interpreter) execute(tokens []string) error {
 			if len(tokens) < j+2 {
 				return i.newError(19)
 			}
+
 			name := tokens[j+1]
 
 			var targetType string

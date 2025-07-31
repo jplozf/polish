@@ -55,7 +55,7 @@ Numbers are pushed onto the stack. Operators pop arguments, perform calculations
 10 5 -    ( Result: 5 )
 10 5 *    ( Result: 50 )
 10 5 /    ( Result: 2 )
-10 3 %    ( Result: 1 )
+10 3 mod  ( Result: 1 )
 ```
 
 ### Stack Manipulation
@@ -164,7 +164,7 @@ false { "This won't run." . cr } { "This will run." . cr } if
 true str          ( Result: "true" )
 "A" code          ( Result: 65)
 65 char           ( Result: "A")
-65 emit           ( Display: A)
+65 emit           ( Print: A)
 ```
 
 ### File and State Management

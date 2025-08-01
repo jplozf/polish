@@ -46,6 +46,7 @@ Upon running `./polish`, you will be presented with an interactive Text User Int
 
 ### Math functions
 
+*   `abs`: Absolute value for the top of stack.
 *   `chs`: Change sign of the value on top of stack.
 *   `sqrt`: Square root.
 *   `pow`: Power.
@@ -59,6 +60,7 @@ Upon running `./polish`, you will be presented with an interactive Text User Int
 *   `exp`: Exponential.
 *   `ln`: Natural logarithm.
 *   `factorial`: Factorial.
+*   `gamma`: Gamma.
 *   `int`: Integer part.
 *   `frac`: Fractional part.
 *   `asin`: Arc sine.

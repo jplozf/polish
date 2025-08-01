@@ -1859,6 +1859,24 @@ func (i *Interpreter) registerOpcodes() {
 		return nil
 	}
 
+	i.opcodes["abs"] = func(i *Interpreter) error {
+		a, err := i.popFloat()
+		if err != nil {
+			return err
+		}
+		i.push(math.Abs(a))
+		return nil
+	}
+
+	i.opcodes["gamma"] = func(i *Interpreter) error {
+		a, err := i.popFloat()
+		if err != nil {
+			return err
+		}
+		i.push(math.Gamma(a))
+		return nil
+	}
+
 	// Help
 	i.opcodes["help"] = func(i *Interpreter) error {
 		fmt.Fprintln(i.outputView, CleanMarkdown(readmeContent))

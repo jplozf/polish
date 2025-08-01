@@ -372,6 +372,8 @@ func (i *Interpreter) loadState(filename string) error {
 	}
 
 	i.stack = state.Stack
+	// Do not overwrite the build-time version
+	delete(state.Variables, "_version")
 	// Merge loaded variables into existing ones.
 	// Internal variables (starting with '_') are updated if they exist in the loaded state,
 	// allowing their state to persist across sessions.

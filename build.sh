@@ -15,7 +15,7 @@ VERSION="${MAJOR_VERSION}.${COMMIT_COUNT}-${GIT_HASH}"
 echo "Building Polish interpreter with version: ${VERSION}"
 
 # Build the Go application, embedding the version string
-go build -ldflags "-X main.version=${VERSION}" -o polish .
+go build -a -ldflags "-X main.version=${VERSION}" -o polish .
 
 if [ $? -eq 0 ]; then
     echo "Build successful: ./polish"

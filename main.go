@@ -68,26 +68,26 @@ var errors = []Error{
 	{Code: 26, Message: "edit: word '%s' not found"},
 	{Code: 27, Message: "edit: variable '%s' is not a code block"},
 	{Code: 28, Message: "edit: variable '%s' not found"},
-	{Code: 29, Message: "error executing '%s': %w"},
+	{Code: 29, Message: "error executing '%s'\n%w"},
 	{Code: 30, Message: "undefined word: %s"},
-	{Code: 31, Message: "error executing word '%s': %w"},
+	{Code: 31, Message: "error executing word '%s'\n%w"},
 	{Code: 32, Message: "variable '%s' contains non-string elements in block"},
-	{Code: 33, Message: "error executing variable as word '%s': %w"},
+	{Code: 33, Message: "error executing variable as word '%s'\n%w"},
 	{Code: 34, Message: "unrecognized token: %s"},
 	{Code: 35, Message: "unmatched ')'"},
 	{Code: 36, Message: "unmatched quote"},
 	{Code: 37, Message: "unmatched '('"},
 	{Code: 38, Message: "expected '{' to start block"},
 	{Code: 39, Message: "unmatched '{'"},
-	{Code: 40, Message: "failed to get home directory: %w"},
-	{Code: 41, Message: "failed to create .rpn directory: %w"},
-	{Code: 42, Message: "failed to marshal interpreter state: %w"},
-	{Code: 43, Message: "failed to write state to file %s: %w"},
-	{Code: 44, Message: "failed to read state from file %s: %w"},
-	{Code: 45, Message: "failed to unmarshal interpreter state: %w"},
-	{Code: 46, Message: "failed to read RPN file %s: %w"},
-	{Code: 47, Message: "failed to open file %s for export: %w"},
-	{Code: 48, Message: "failed to read RPN directory %s: %w"},
+	{Code: 40, Message: "failed to get home directory\n%w"},
+	{Code: 41, Message: "failed to create .rpn directory\n%w"},
+	{Code: 42, Message: "failed to marshal interpreter state\n%w"},
+	{Code: 43, Message: "failed to write state to file %s\n%w"},
+	{Code: 44, Message: "failed to read state from file %s\n%w"},
+	{Code: 45, Message: "failed to unmarshal interpreter state\n%w"},
+	{Code: 46, Message: "failed to read RPN file %s\n%w"},
+	{Code: 47, Message: "failed to open file %s for export\n%w"},
+	{Code: 48, Message: "failed to read RPN directory %s\n%w"},
 	{Code: 49, Message: "while: condition must evaluate to a boolean or number, got %T"},
 	{Code: 50, Message: "'%s' is low level defined into the core"},
 	{Code: 51, Message: "execution interrupted by user"},
@@ -239,10 +239,10 @@ func (i *Interpreter) newError(code int, args ...interface{}) error {
 	for _, e := range errors {
 		if e.Code == code {
 			i.variables["_last_error"] = float64(code)
-			return fmt.Errorf(fmt.Sprintf("[red]error %d: %s[white]", e.Code, e.Message), args...)
+			return fmt.Errorf(fmt.Sprintf("[red]error %d: %s[white]\n", e.Code, e.Message), args...)
 		}
 	}
-	return fmt.Errorf("[red]unknown error code: %d[white]", code)
+	return fmt.Errorf("[red]unknown error code: %d[white]\n", code)
 }
 
 // InterpreterState represents the savable state of the interpreter.
@@ -2032,6 +2032,13 @@ func (i *Interpreter) execute(tokens []string) error {
 				return i.newError(20, targetName)
 			}
 
+			// Check if it's an internal command
+                        if _, exists := i.opcodes[targetName]; exists {
+                                if targetType == "any" || targetType == "word" {
+                                        return i.newError(50, targetName)
+                                }
+                        }
+
 			deleted := false
 			if targetType == "word" || targetType == "any" {
 				if _, ok := i.words[targetName]; ok {
@@ -2190,6 +2197,11 @@ func (i *Interpreter) execute(tokens []string) error {
 			}
 			var editString string
 			var targetType string
+
+			// Check if it's an internal command
+                        if _, exists := i.opcodes[name]; exists {
+                        	return i.newError(50, name)
+                        }
 
 			if strings.HasPrefix(name, "var:") {
 				name = strings.TrimPrefix(name, "var:")

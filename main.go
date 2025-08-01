@@ -112,6 +112,50 @@ const appName = "Polish"
 
 var version string // This will be set by ldflags during build
 
+var _version float64 // Internal read-only variable for version as float
+
+func init() {
+	// Parse the 'version' string which is expected to be in "MAJOR.COMMITS-HASH" format
+	parts := strings.Split(version, ".")
+	if len(parts) >= 2 {
+		majorStr := parts[0]
+		commitsAndHash := parts[1]
+
+		major, err := strconv.ParseFloat(majorStr, 64)
+		if err != nil {
+			_version = 0.0 // Default or error value
+			return
+		}
+
+		commitParts := strings.Split(commitsAndHash, "-")
+		var commitsStr string
+		if len(commitParts) >= 1 {
+			commitsStr = commitParts[0]
+		} else {
+			_version = major // If commitCount is not available, use major version only
+			return
+		}
+
+		commits, err := strconv.ParseFloat(commitsStr, 64)
+		if err != nil {
+			_version = major // If parsing fails, use major version only
+			return
+		}
+
+		// Combine major and commit count as 0.XX
+		_version = major + (commits / 100.0)
+	} else {
+		// Fallback if version string is not in the expected format
+		// Use the majorVersion constant as a base
+		major, err := strconv.ParseFloat(majorVersion, 64)
+		if err != nil {
+			_version = 0.0
+		} else {
+			_version = major
+		}
+	}
+}
+
 // loadHistory loads command history from the history file.
 func loadHistory() {
 	home, err := os.UserHomeDir()
@@ -330,7 +374,10 @@ func (i *Interpreter) loadState(filename string) error {
 	i.stack = state.Stack
 	// Merge loaded variables into existing ones, preserving internal variables
 	for k, v := range state.Variables {
-		i.variables[k] = v
+		// Only overwrite if it's not an internal variable (starts with '_')
+		if !strings.HasPrefix(k, "_") {
+			i.variables[k] = v
+		}
 	}
 	if state.Words == nil {
 		i.words = make(map[string][]string)
@@ -401,6 +448,10 @@ func NewInterpreter(app *tview.Application, appFlex *tview.Flex, outputView io.W
 	interp.variables["_error"] = false
 	interp.variables["_last_x"] = nil // Initialize _last_x
 	interp.loopIndex = -1 // Initialize loop index to -1 (no active loop)
+
+	// Add _version to internal variables
+	interp.variables["_version"] = _version
+
 	interp.registerOpcodes()
 	return interp
 }

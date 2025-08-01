@@ -1850,6 +1850,15 @@ func (i *Interpreter) registerOpcodes() {
 		return nil
 	}
 
+	i.opcodes["chs"] = func(i *Interpreter) error {
+		a, err := i.popFloat()
+		if err != nil {
+			return err
+		}
+		i.push(-a)
+		return nil
+	}
+
 	// Help
 	i.opcodes["help"] = func(i *Interpreter) error {
 		fmt.Fprintln(i.outputView, CleanMarkdown(readmeContent))

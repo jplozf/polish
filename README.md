@@ -44,6 +44,29 @@ Upon running `./polish`, you will be presented with an interactive Text User Int
 *   Enter `help` or press the `F1` key to show this help.
 *   Press the `F2` key to switch the current panel.
 
+### Math functions
+
+*   `chs`: Change sign of the value on top of stack.
+*   `sqrt`: Square root.
+*   `pow`: Power.
+*   `nroot`: Nth root.
+*   `sq`: Square.
+*   `sin`: Sine.
+*   `cos`: Cosine.
+*   `tan`: Tangent.
+*   `log`: Base 10 logarithm.
+*   `pow10`: 10 to the power of.
+*   `exp`: Exponential.
+*   `ln`: Natural logarithm.
+*   `factorial`: Factorial.
+*   `int`: Integer part.
+*   `frac`: Fractional part.
+*   `asin`: Arc sine.
+*   `acos`: Arc cosine.
+*   `atan`: Arc tangent.
+*   `atan2`: Arc tangent of y/x.
+*   `inv`: Inverse.
+
 ## Syntax and Examples
 
 ### Numbers and Basic Arithmetic
@@ -207,6 +230,7 @@ These variables start with `_` and control interpreter behavior. Use `set`, `uns
 *   `_stack_type`: `true` to show stack item types, `false` to show values.
 *   `_hidden_vars`: `true` to show internal variables in the variables view, `false` to hide them.
 *   `_exit_save`: `true` to automatically save state to `default.json` on exit.
+*   `_version`: Contains the version of the interpreter as a floating number. This is a read-only variable.
 *   `_last_x`: Stores the last value popped from the stack. This is a read-only variable.
 *   `_last_error`: Contains the code of the last error. This is a read-only variable.
 *   `_error`: `true` if the last command resulted in an error, `false` otherwise. This is a read-only variable.

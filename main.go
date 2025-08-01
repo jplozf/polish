@@ -372,12 +372,11 @@ func (i *Interpreter) loadState(filename string) error {
 	}
 
 	i.stack = state.Stack
-	// Merge loaded variables into existing ones, preserving internal variables
+	// Merge loaded variables into existing ones.
+	// Internal variables (starting with '_') are updated if they exist in the loaded state,
+	// allowing their state to persist across sessions.
 	for k, v := range state.Variables {
-		// Only overwrite if it's not an internal variable (starts with '_')
-		if !strings.HasPrefix(k, "_") {
-			i.variables[k] = v
-		}
+		i.variables[k] = v
 	}
 	if state.Words == nil {
 		i.words = make(map[string][]string)
